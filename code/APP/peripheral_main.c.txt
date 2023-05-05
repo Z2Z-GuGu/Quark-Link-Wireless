@@ -1,0 +1,128 @@
+/********************************** (C) COPYRIGHT *******************************
+ * File Name          : main.c
+ * Author             : WCH
+ * Version            : V1.1
+ * Date               : 2020/08/06
+ * Description        : 锟斤拷锟斤拷踊锟接︼拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟较低筹拷锟绞硷拷锟�
+ *********************************************************************************
+ * Copyright (c) 2021 Nanjing Qinheng Microelectronics Co., Ltd.
+ * Attention: This software (modified or not) and binary are used for 
+ * microcontroller manufactured by Nanjing Qinheng Microelectronics.
+ *******************************************************************************/
+
+/******************************************************************************/
+/* 头锟侥硷拷锟斤拷锟斤拷 */
+#include "CONFIG.h"
+#include "HAL.h"
+#include "gattprofile.h"
+#include "peripheral.h"
+#include "blinker.h"
+
+#if(defined(BLE_MAC)) && (BLE_MAC == TRUE)
+u8C MacAddr[6] = {0x84, 0xC2, 0xE4, 0x03, 0x02, 0x02};
+#endif
+
+
+/*********************************************************************
+ * GLOBAL TYPEDEFS
+ */
+__attribute__((aligned(4))) u32 MEM_BUF[BLE_MEMHEAP_SIZE / 4];
+
+extern void app_uart_process(void);
+extern void app_uart_init(void);
+
+void GPIO_Init()
+{
+    GPIOA_ResetBits(GPIO_Pin_12);
+    GPIOA_ModeCfg(GPIO_Pin_12, GPIO_ModeOut_PP_5mA);
+//    GPIOB_ResetBits(GPIO_Pin_14);
+//    GPIOB_ModeCfg(GPIO_Pin_14, GPIO_ModeOut_PP_5mA);
+    GPIOB_ModeCfg(GPIO_Pin_22, GPIO_ModeIN_PU);
+}
+
+void PWM9_Init()
+{
+    GPIOB_ModeCfg(GPIO_Pin_7, GPIO_ModeOut_PP_5mA);  // PB4 - PWM7
+    PWMX_CLKCfg(1);                                   // cycle = Fsys/4
+    PWMX_CycleCfg(PWMX_Cycle_64);                     // 鍛ㄦ湡 = 64*cycle
+    PWMX_ACTOUT(CH_PWM9, 32, High_Level, ENABLE);  // 25% 鍗犵┖姣�
+}
+
+void TIM2_init()
+{
+//    TMR2_ClearITFlag(TMR0_3_IT_CYC_END);    // 娓呴櫎涓柇鏍囧織
+    TMR2_TimerInit(FREQ_SYS / 100);     // 璁剧疆瀹氭椂鏃堕棿 10ms
+    PFIC_EnableIRQ(TMR2_IRQn);
+    TMR2_ITCfg(ENABLE, TMR0_3_IT_CYC_END); // 寮�鍚腑鏂�
+}
+
+/*******************************************************************************
+ * Function Name  : Main_Circulation
+ * Description    : 锟斤拷循锟斤拷
+ * Input          : None
+ * Output         : None
+ * Return         : None
+ *******************************************************************************/
+__attribute__((section(".highcode")))
+__attribute__((noinline))
+void Main_Circulation()
+{
+    while(1)
+    {
+        // GPIOB_InverseBits(GPIO_Pin_14);
+        TMOS_SystemProcess();
+        #ifdef Blinker_Analaysis
+        app_Blinker_Analaysis_process();
+        #endif
+        #ifdef UART3_Join
+        app_uart_process();
+        #endif
+    }
+}
+
+/*******************************************************************************
+ * Function Name  : main
+ * Description    : 锟斤拷锟斤拷锟斤拷
+ * Input          : None
+ * Output         : None
+ * Return         : None
+ *******************************************************************************/
+int main(void)
+{
+    SetSysClock(CLK_SOURCE_PLL_60MHz);
+    GPIO_Init();
+    // TIM2_init();
+#ifdef DEBUG
+    GPIOA_SetBits(bTXD1);
+    GPIOA_ModeCfg(bTXD1, GPIO_ModeOut_PP_5mA);
+    UART1_DefInit();
+#endif
+    PRINT("%s\n", VER_LIB);
+
+    CH57X_BLEInit();
+    HAL_Init();
+    GAPRole_PeripheralInit();
+    Peripheral_Init();
+    app_fifo_init();
+    KEY_ProcessINIT();
+    LED_ProcessINIT();
+//    PWM9_Init();
+#ifdef UART3_Join
+    app_uart_init();
+#endif
+    Main_Circulation();
+}
+
+/*******************************************************************************
+ * @fn      TMR2_IRQHandler
+ * @brief   TMR2涓柇鍑芥暟
+ * @return  None
+*******************************************************************************/
+__attribute__((interrupt("WCH-Interrupt-fast")))
+__attribute__((section(".highcode")))
+void TMR2_IRQHandler(void) // TMR2 瀹氭椂涓柇
+{
+//    static uint16_t TIM2_count = 0;
+//    TIM2_count ++;
+    TMR2_ClearITFlag(TMR0_3_IT_CYC_END); // 娓呴櫎涓柇鏍囧織
+}

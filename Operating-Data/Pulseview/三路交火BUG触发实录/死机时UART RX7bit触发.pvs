@@ -1,0 +1,101 @@
+[General]
+decode_signals=0
+generated_signals=0
+meta_objs=4
+views=1
+
+[D0]
+color=4279638298
+conv_options=0
+conversion_type=0
+enabled=true
+name=Error
+
+[D1]
+color=4287582722
+conv_options=0
+conversion_type=0
+enabled=true
+name=BLE
+
+[D2]
+color=4291559424
+conv_options=0
+conversion_type=0
+enabled=true
+name=USB
+
+[D3]
+color=4294277376
+conv_options=0
+conversion_type=0
+enabled=true
+name=USB INT
+
+[D4]
+color=4293776384
+conv_options=0
+conversion_type=0
+enabled=true
+name=UART
+
+[D5]
+color=4285780502
+conv_options=0
+conversion_type=0
+enabled=true
+name=UART INT
+
+[D6]
+color=4281623972
+conv_options=0
+conversion_type=0
+enabled=true
+name=D6
+
+[D7]
+color=4285878395
+conv_options=0
+conversion_type=0
+enabled=true
+name=D7
+
+[meta_obj0]
+assoc_view=0
+text=E
+time=22 serialization::archive 17 0 0 0 0 11 16569600 5 9544406 66828304 52919006 0 0 0 6
+type=time_marker
+
+[meta_obj1]
+assoc_view=0
+text=+7 s
+time=22 serialization::archive 17 0 0 0 0 18 2960587 50000014 47006070 52072882 65228271 0 0 0 6
+type=time_marker
+
+[meta_obj2]
+assoc_view=0
+text=+50 s
+time=22 serialization::archive 17 0 0 0 0 61 57830842 95728400 10259591 15370489 13517878 0 0 0 6
+type=time_marker
+
+[meta_obj3]
+assoc_view=0
+text=+54 s
+time=22 serialization::archive 17 0 0 0 0 65 22722157 11484164 56744365 50482488 44142656 0 0 0 6
+type=time_marker
+
+[view0]
+D0\trace_height=32
+D1\trace_height=32
+D2\trace_height=32
+D3\trace_height=32
+D4\trace_height=32
+D5\trace_height=32
+D6\trace_height=32
+D7\trace_height=32
+offset=22 serialization::archive 17 0 0 0 0 0 0 0 0 0 0 0 0 0 6
+scale=0.0097860994644223404
+segment_display_mode=1
+splitter_state=@ByteArray(\0\0\0\xff\0\0\0\x1\0\0\0\x2\0\0\0o\0\0\x5*\x1\0\0\0\x1\x1\0\0\0\x1\0)
+v_offset=-90
+zero_offset=22 serialization::archive 17 0 0 0 0 0 0 0 0 0 0 0 0 0 6
