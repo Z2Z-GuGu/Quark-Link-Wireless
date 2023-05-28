@@ -11,16 +11,16 @@ RM := rm -rf
 -include StdPeriphDriver/subdir.mk
 -include Startup/subdir.mk
 -include RVMSIS/subdir.mk
+-include QLW_lib/usb_task/subdir.mk
+-include QLW_lib/uart_task/subdir.mk
+-include QLW_lib/boardbase/subdir.mk
+-include QLW_lib/ble_task/subdir.mk
+-include QLW_lib/app_drv_fifo/subdir.mk
+-include QLW_lib/Storage/subdir.mk
+-include QLW_lib/Blinker/subdir.mk
+-include Main/subdir.mk
 -include HAL/subdir.mk
--include APP/usb_task/subdir.mk
--include APP/uart_task/subdir.mk
--include APP/boardbase/subdir.mk
--include APP/ble_task/subdir.mk
--include APP/app_drv_fifo/subdir.mk
--include APP/Storage/subdir.mk
--include APP/Main/subdir.mk
--include APP/Blinker/subdir.mk
--include APP/Application/subdir.mk
+-include APP/subdir.mk
 -include subdir.mk
 -include objects.mk
 
@@ -46,34 +46,34 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 SECONDARY_FLASH += \
-11-CH573F-BLE-UART-USB.hex \
+Quark_Link_Wireless.hex \
 
 SECONDARY_LIST += \
-11-CH573F-BLE-UART-USB.lst \
+Quark_Link_Wireless.lst \
 
 SECONDARY_SIZE += \
-11-CH573F-BLE-UART-USB.siz \
+Quark_Link_Wireless.siz \
 
 
 # All Target
-all: 11-CH573F-BLE-UART-USB.elf secondary-outputs
+all: Quark_Link_Wireless.elf secondary-outputs
 
 # Tool invocations
-11-CH573F-BLE-UART-USB.elf: $(OBJS) $(USER_OBJS)
-	@	@	riscv-none-embed-gcc -march=rv32imac -mabi=ilp32 -mcmodel=medany -msmall-data-limit=8 -mno-save-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused  -g -T "C:\Project\CH573F\11-CH573F-BLE-UART-USB\Ld\Link.ld" -nostartfiles -Xlinker --gc-sections -L"C:\Project\CH573F\11-CH573F-BLE-UART-USB\StdPeriphDriver" -L"C:\Project\CH573F\11-CH573F-BLE-UART-USB\LIB" -Xlinker --print-memory-usage -Wl,-Map,"11-CH573F-BLE-UART-USB.map" --specs=nano.specs --specs=nosys.specs -o "11-CH573F-BLE-UART-USB.elf" $(OBJS) $(USER_OBJS) $(LIBS)
+Quark_Link_Wireless.elf: $(OBJS) $(USER_OBJS)
+	@	@	riscv-none-embed-gcc -march=rv32imac -mabi=ilp32 -mcmodel=medany -msmall-data-limit=8 -mno-save-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused  -g -T "C:\Project\CH573F\Quark_Link_Wireless\Ld\Link.ld" -nostartfiles -Xlinker --gc-sections -L"C:\Project\CH573F\Quark_Link_Wireless\StdPeriphDriver" -L"C:\Project\CH573F\Quark_Link_Wireless\LIB" -Xlinker --print-memory-usage -Wl,-Map,"Quark_Link_Wireless.map" --specs=nano.specs --specs=nosys.specs -o "Quark_Link_Wireless.elf" $(OBJS) $(USER_OBJS) $(LIBS)
 	@	@
-11-CH573F-BLE-UART-USB.hex: 11-CH573F-BLE-UART-USB.elf
-	@	riscv-none-embed-objcopy -O ihex "11-CH573F-BLE-UART-USB.elf"  "11-CH573F-BLE-UART-USB.hex"
+Quark_Link_Wireless.hex: Quark_Link_Wireless.elf
+	@	riscv-none-embed-objcopy -O ihex "Quark_Link_Wireless.elf"  "Quark_Link_Wireless.hex"
 	@	@
-11-CH573F-BLE-UART-USB.lst: 11-CH573F-BLE-UART-USB.elf
-	@	riscv-none-embed-objdump --all-headers --demangle --disassemble "11-CH573F-BLE-UART-USB.elf" > "11-CH573F-BLE-UART-USB.lst"
+Quark_Link_Wireless.lst: Quark_Link_Wireless.elf
+	@	riscv-none-embed-objdump --all-headers --demangle --disassemble "Quark_Link_Wireless.elf" > "Quark_Link_Wireless.lst"
 	@	@
-11-CH573F-BLE-UART-USB.siz: 11-CH573F-BLE-UART-USB.elf
-	@	riscv-none-embed-size --format=berkeley "11-CH573F-BLE-UART-USB.elf"
+Quark_Link_Wireless.siz: Quark_Link_Wireless.elf
+	@	riscv-none-embed-size --format=berkeley "Quark_Link_Wireless.elf"
 	@	@
 # Other Targets
 clean:
-	-$(RM) $(ASM_UPPER_DEPS)$(OBJS)$(SECONDARY_FLASH)$(SECONDARY_LIST)$(SECONDARY_SIZE)$(ASM_DEPS)$(S_DEPS)$(S_UPPER_DEPS)$(C_DEPS) 11-CH573F-BLE-UART-USB.elf
+	-$(RM) $(ASM_UPPER_DEPS)$(OBJS)$(SECONDARY_FLASH)$(SECONDARY_LIST)$(SECONDARY_SIZE)$(ASM_DEPS)$(S_DEPS)$(S_UPPER_DEPS)$(C_DEPS) Quark_Link_Wireless.elf
 	-@
 secondary-outputs: $(SECONDARY_FLASH) $(SECONDARY_LIST) $(SECONDARY_SIZE)
 

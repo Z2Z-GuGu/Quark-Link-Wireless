@@ -22,16 +22,16 @@ C_DEPS :=
 
 # Every subdirectory with source files must be described here
 SUBDIRS := \
-APP/Application \
-APP/Blinker \
-APP/Main \
-APP/Storage \
-APP/app_drv_fifo \
-APP/ble_task \
-APP/boardbase \
-APP/uart_task \
-APP/usb_task \
+APP \
 HAL \
+Main \
+QLW_lib/Blinker \
+QLW_lib/Storage \
+QLW_lib/app_drv_fifo \
+QLW_lib/ble_task \
+QLW_lib/boardbase \
+QLW_lib/uart_task \
+QLW_lib/usb_task \
 RVMSIS \
 Startup \
 StdPeriphDriver \
