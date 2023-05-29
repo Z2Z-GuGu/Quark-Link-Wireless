@@ -354,16 +354,19 @@
 
 + 5/5 用一个uint16_t BitMap表示系统状态吧，表示以下几种状态
 
-  1. 系统正常运行
+  1. 系统运行异常
   2. USB连接状态更新
   3. USB连接状态
-  4. UART --> USB
-  5. USB --> UART
+  4. UART TX Action
+  5. UART RX Action
   6. 程序烧录中
   7. QLW系统低功耗
   8. QLW系统配置
   9. BLE连接状态更新
   10. BLE连接状态
+  11. SYS KEY STATE
+  12. BLE_to_UART_EN
+  13. UART_to_BLE_EN
 
 + GPIO状态配置
 
