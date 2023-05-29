@@ -27,6 +27,7 @@ extern "C" {
 #define UART0_RX_NEW_FRAME_EVT      0x0001
 #define UART0_TX_NEW_FRAME_EVT      0x0002
 #define UART0_RX_TIMEOUT_EVT        0x0004
+#define UART0_SYS_STATE_EVT         0x0008
 
 // UART LCR
 #define UART_WORD_SZ_MASK           0x03
@@ -47,6 +48,9 @@ extern "C" {
 extern uint8_t EP1_T_Buf0_Len;
 extern uint8_t EP1_T_Buf1_Len;
 extern uint8_t UART_TaskID;
+
+extern app_drv_fifo_t BLE_to_UART_fifo;
+extern app_drv_fifo_t UART_to_BLE_fifo;
 
 void UART0_Init(uint32_t UART0_bps);
 void UART_RX_TimeOUT_Init(uint32_t t);

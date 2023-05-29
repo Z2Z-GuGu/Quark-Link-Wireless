@@ -18,7 +18,7 @@ extern "C" {
 #include "config.h"
 #include "HAL.h"
 
-#include "blinker.h"
+#include "APP.h"
 #include "boardbase.h"
 #include "ble_task.h"
 #include "usb_task.h"
@@ -137,28 +137,41 @@ extern "C" {
 
 // LED Blink Mode
 #define LED_MODE_EN_Bit                 0x80
-#define LED_not_Blink_MODE              0
-#define LED_Blink_05tps_MODE            1
-#define LED_Blink_10tps_MODE            2
-
-// DFT_SYS_LED_STATE
-#define LED_ON                          0x80
-#define LED_OFF                         0x00
-#define LED_05tps                       0x81
-#define LED_10tps                       0x82
+#define LED_OFF_MODE                    0x00
+#define LED_not_Blink_MODE              0x80
+#define LED_Blink_05tps_MODE            0x81
+#define LED_Blink_10tps_MODE            0x82
+#define LED_Blink_2t_MODE               0x83
 
 // LED STATE BITMAP MASK
 #define LED_DATA_MASK                   0x03FC      //11 1111 1100
 
+// SYS STATE BITMAP
+#define SYS_RUNNING_BREAK_STATE_Bit     0x0001
+#define SYS_USB_NEW_STATE_Bit           0x0002
+#define SYS_USB_CONNECT_STATE_Bit       0x0004
+#define SYS_UART_TX_ACTION_Bit          0x0008
+#define SYS_UART_RX_ACTION_Bit          0x0010
+#define SYS_UART_FLASHING_STATE_Bit     0x0020
+#define SYS_LOW_POWER_STATE_Bit         0x0040
+#define SYS_CONFIGINFG_STATE_Bit        0x0080
+#define SYS_BLE_NEW_STATE_Bit           0x0100
+#define SYS_BLE_CONNECT_STATE_Bit       0x0200
+#define SYS_KEY_ACTION_Bit              0x0400
+#define SYS_BLE_to_UART_EN_Bit          0x0800
+#define SYS_UART_to_BLE_EN_Bit          0x1000
 
 #define TIM2_value          (uint16_t)(R32_TMR2_COUNT >>= 16)
 
 extern app_drv_fifo_t task_list_fifo;
 extern uint8_t APP_TaskID;
-extern uint8_t DFT_SYS_LED_STATE;   // SYS_STATE_Flashing
-extern volatile uint16_t LED_STATE_BITMAP[2];
-extern volatile uint16_t KEY_STATE_BITMAP[2];
+// extern uint8_t DFT_SYS_LED_STATE;   // SYS_STATE_Flashing
+extern volatile uint16_t SYS_STATE_BITMAP;
+// extern volatile uint8_t LED_Bink_Mode[2];
+// extern volatile uint16_t LED_STATE_BITMAP[2];
+// extern volatile uint16_t KEY_STATE_BITMAP[2];
 
+void Set_LED_Blink_Mode(uint8_t _LED_Index, uint8_t _Blink_Mode);
 void All_FIFO_Init(void);
 void APP_task_Init(void);
 void Task_Launcher(void);

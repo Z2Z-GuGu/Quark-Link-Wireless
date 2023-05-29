@@ -12,10 +12,10 @@
 static uint8_t uart_tx_buffer[UART_TX_BUFFER_LENGTH] = {0};
 static uint8_t uart_rx_buffer[UART_RX_BUFFER_LENGTH] = {0};
 
-app_drv_fifo_t uart_tx_fifo;
-app_drv_fifo_t uart_rx_fifo;
+app_drv_fifo_t BLE_to_UART_fifo;
+app_drv_fifo_t UART_to_BLE_fifo;
 
-// extern app_drv_fifo_t uart_tx_fifo;
+// extern app_drv_fifo_t BLE_to_UART_fifo;
 // extern app_drv_fifo_t ble_tx_fifo;
 
 
@@ -63,8 +63,8 @@ void uart_fifo_init()
 {
     //tx fifo and tx fifo
     //The buffer length should be a power of 2
-    app_drv_fifo_init(&uart_tx_fifo, uart_tx_buffer, UART_TX_BUFFER_LENGTH);
-    app_drv_fifo_init(&uart_rx_fifo, uart_rx_buffer, UART_RX_BUFFER_LENGTH);
+    app_drv_fifo_init(&BLE_to_UART_fifo, uart_tx_buffer, UART_TX_BUFFER_LENGTH);
+    app_drv_fifo_init(&UART_to_BLE_fifo, uart_rx_buffer, UART_RX_BUFFER_LENGTH);
 }
 
 /*******************************************************************************
@@ -88,7 +88,7 @@ void UART0_Init(uint32_t UART0_bps)
 
 void uart_fifo_cheak_process()
 {
-    if(!app_drv_fifo_is_empty(&uart_tx_fifo))
+    if(!app_drv_fifo_is_empty(&BLE_to_UART_fifo))
     {
         tmos_set_event(UART_TaskID, UART0_TX_NEW_FRAME_EVT);
     }
@@ -100,17 +100,23 @@ uint16 Uart_ProcessEvent(uint8 task_id, uint16 events)
     // uart_fifo_cheak_process();
     if(events & UART0_RX_NEW_FRAME_EVT)
     {
-        // app_drv_fifo_write_from_same_addr(&uart_tx_fifo, (uint8_t *)&R8_UART0_RBR, R8_UART0_RFC);
+        // app_drv_fifo_write_from_same_addr(&BLE_to_UART_fifo, (uint8_t *)&R8_UART0_RBR, R8_UART0_RFC);
         // DEBUG_PIN(UART_Pin, GPIO_LOW);
         return (events ^ UART0_RX_NEW_FRAME_EVT);
     }
     if(events & UART0_TX_NEW_FRAME_EVT)
     {
-        if(R8_UART0_TFC < UART_FIFO_SIZE)
+        if ( (SYS_STATE_BITMAP & SYS_BLE_to_UART_EN_Bit) && \
+            !(SYS_STATE_BITMAP & SYS_UART_FLASHING_STATE_Bit) && \
+            !(SYS_STATE_BITMAP & SYS_UART_TX_ACTION_Bit))
+        // 使能BLE to UART； 不在Flash状态； TX未处于发送状态
         {
-            app_drv_fifo_read_to_same_addr(&uart_tx_fifo, (uint8_t *)&R8_UART0_THR, UART_FIFO_SIZE - R8_UART0_TFC);
-        //    EP1_OUT_ACK_Condition();
+            if(R8_UART0_TFC < UART_FIFO_SIZE)
+            {
+                app_drv_fifo_read_to_same_addr(&BLE_to_UART_fifo, (uint8_t *)&R8_UART0_THR, UART_FIFO_SIZE - R8_UART0_TFC);
+            }
         }
+        //    EP1_OUT_ACK_Condition();
         // DEBUG_PIN(UART_Pin, GPIO_LOW);
         return (events ^ UART0_TX_NEW_FRAME_EVT);
     }
@@ -119,7 +125,20 @@ uint16 Uart_ProcessEvent(uint8 task_id, uint16 events)
         // DEBUG_PIN(UART_Pin, GPIO_LOW);
         return (events ^ UART0_RX_TIMEOUT_EVT);
     }
+    if(events & UART0_SYS_STATE_EVT)
+    {
+        if(R8_UART0_TFC > 0)
+            SYS_STATE_BITMAP |= SYS_UART_TX_ACTION_Bit;
+        else
+            SYS_STATE_BITMAP &= ~SYS_UART_TX_ACTION_Bit;
 
+        if(R8_UART0_RFC > 0)
+            SYS_STATE_BITMAP |= SYS_UART_RX_ACTION_Bit;
+        else
+            SYS_STATE_BITMAP &= ~SYS_UART_RX_ACTION_Bit;
+        
+        return (events ^ UART0_SYS_STATE_EVT);
+    }
     // DEBUG_PIN(UART_Pin, GPIO_LOW);
     return 0;
 }
@@ -129,6 +148,7 @@ void uart_task_Init()
     UART_RX_TimeOUT_Init(UART0_default_bps);
     UART0_Init(UART0_default_bps);
     UART_TaskID = TMOS_ProcessEventRegister(Uart_ProcessEvent);
+    tmos_start_reload_task(UART_TaskID, UART0_SYS_STATE_EVT, 20);
     // tmos_set_event(UART_TaskID, UART0_RX_NEW_FRAME_EVT);
     // tmos_start_reload_task(UART_TaskID, UART0_RX_NEW_FRAME_EVT, 800);
 }
@@ -170,6 +190,8 @@ void fill_usb_buffer_auto_send(uint8_t _send_now)
     while (R8_UART0_RFC > 0)
     {
         pEP1_TEMP_TX_BUF[EP1_IN_index] = UART0_RecvByte();
+        if(SYS_STATE_BITMAP & SYS_UART_to_BLE_EN_Bit)
+            app_drv_fifo_write_from_same_addr(&UART_to_BLE_fifo, (uint8_t *)(pEP1_TEMP_TX_BUF + EP1_IN_index), 1);
         EP1_IN_index++;
         if(EP1_IN_index >= MAX_IN_PACKET_SIZE)
         {
@@ -224,6 +246,7 @@ void UART0_IRQHandler(void)
         } break;
         case UART_II_RECV_RDY: // 数据达到设置触发点，接受到7Byte数据从FIFO到软件FIFO
         {
+            // DFT_SYS_LED_STATE = LED_10tps;  // 统一在APP.c中处理
             fill_usb_buffer_auto_send(0);
             DEBUG_PIN(USB_Pin, GPIO_INVER);
             UART_RX_TimeOUT_Start();
@@ -231,12 +254,15 @@ void UART0_IRQHandler(void)
         } break;
         case UART_II_RECV_TOUT: // 接收超时，暂时一帧数据(0-6 Byte)接收完成
         {
+            // DFT_SYS_LED_STATE = LED_10tps;   // 过快（短）的数据不予处理
+            // DFT_SYS_LED_STATE = LED_OFF;  // 统一在APP.c中处理
             UART_RX_TimeOUT_Stop();
             DEBUG_PIN(UART_Pin, GPIO_INVER);
             fill_usb_buffer_auto_send(1);
         } break;
         case UART_II_THR_EMPTY: // 发送缓存区空，可继续发送；
         {
+            // DFT_SYS_LED_STATE = LED_ON;  // 统一在APP.c中处理
             // DEBUG_PIN(E_Pin, GPIO_INVER);
             //UART0_INTCfg(ENABLE, RB_IER_THR_EMPTY);或发送缓存区空将触发此函数
             /* 第一次进入该函数是UART0_INTCfg(ENABLE, RB_IER_THR_EMPTY)后
@@ -262,6 +288,7 @@ __attribute__((section(".highcode")))
 void TMR3_IRQHandler(void) // TMR3 定时中断
 {
   TMR3_ClearITFlag(TMR0_3_IT_CYC_END); // 清除中断标志
+//   DFT_SYS_LED_STATE = LED_ON;  // 统一在APP.c中处理
   fill_usb_buffer_auto_send(1);
   TMR3_ITCfg(DISABLE, TMR0_3_IT_CYC_END); // 关闭中断
 }

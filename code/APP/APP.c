@@ -17,13 +17,10 @@ uint8_t APP_TaskID = INVALID_TASK_ID;
 
 uint8_t *APP_BOOT_State;
 
-uint8_t DFT_SYS_LED_STATE = 0;
 // 系统级状态BitMap变量，与Data Flash同步实现掉电保存
-volatile uint16_t SYS_STATE_BITMAP;
-volatile uint16_t IO_STATE_BITMAP;
-volatile uint16_t IO_STATE_BITMAP;
-// volatile uint16_t SYS_LED_STATE_BITMAP;
-// volatile uint16_t USR_LED_STATE_BITMAP;
+volatile uint16_t SYS_STATE_BITMAP = 0x00;
+
+// KEY & LED 状态变量
 volatile uint8_t LED_Bink_Mode[2] = {0};
 volatile uint16_t LED_STATE_BITMAP[2] = {0};
 volatile uint16_t KEY_STATE_BITMAP[2] = {0};
@@ -79,6 +76,67 @@ GPIOStateTpDef KEY_EVENT_to_GPIOState(uint8_t KEY_EVENT)
     return GPIO_INVER;
 }
 
+void Set_LED_Blink_Mode(uint8_t _LED_Index, uint8_t _Blink_Mode)
+{
+    LED_Bink_Mode[_LED_Index] = _Blink_Mode;
+}
+
+void LED_Ctrl(uint8_t LED_Index, uint8_t Ctrl_Mode)
+{
+    GPIOStateTpDef TEMP_LED_Ctrl;
+    static uint8_t event_count[2] = {0};
+    static uint8_t blink_count[2] = {0};
+    uint8_t TEMP_LED_Mode = LED_Bink_Mode[LED_Index];
+    // Counter
+    event_count[LED_Index]++;
+    if(event_count[LED_Index] >= 40)    // 500ms
+        event_count[LED_Index] = 0;
+
+    // Mode
+    switch(TEMP_LED_Mode)
+    {
+        case LED_not_Blink_MODE:
+            TEMP_LED_Ctrl = GPIO_HIGH;
+            break;
+        case LED_Blink_05tps_MODE:
+            if(event_count[LED_Index] % 8 == 0)
+                TEMP_LED_Ctrl = GPIO_INVER;
+            break;
+        case LED_Blink_10tps_MODE:
+            if(event_count[LED_Index] % 4 == 0)
+                TEMP_LED_Ctrl = GPIO_INVER;
+            break;
+        case LED_Blink_2t_MODE:
+            if(event_count[LED_Index] % 16 == 0)
+            {
+                TEMP_LED_Ctrl = GPIO_INVER;
+                blink_count[LED_Index]++;
+                if(blink_count[LED_Index] >= 4)
+                {
+                    blink_count[LED_Index] = 0;
+                    if(LED_Index == SYS_LED_INDEX)
+                        LED_Bink_Mode[LED_Index] = LED_not_Blink_MODE;
+                    else
+                        LED_Bink_Mode[LED_Index] = LED_OFF_MODE;
+                }
+            }
+            break;
+        default:
+            TEMP_LED_Ctrl = GPIO_LOW;
+        break;
+    }
+
+    // OUTPUT
+    if(LED_Index == SYS_LED_INDEX)
+    {
+        Pin_Ctrl(Sys_LED_Pin, TEMP_LED_Ctrl);
+    }
+    else
+    {
+        Pin_Ctrl(User_LED_Pin, TEMP_LED_Ctrl);
+    }
+}
+
 void LED_Handle(uint8_t LED_Index)
 {
     uint16_t TEMP_LED_STATE_BitMap = LED_STATE_BITMAP[LED_Index];
@@ -120,30 +178,39 @@ void LED_Handle(uint8_t LED_Index)
         switch(LED_Index)
         {
             case SYS_LED_INDEX:
-                switch(DFT_SYS_LED_STATE)
-                {
-                    case 0:
-                        LED_Bink_Mode[SYS_LED_INDEX] = LED_ON;    // 常亮
-                        break;
-                    case 1:
-                        LED_Bink_Mode[SYS_LED_INDEX] = LED_OFF;    // 常灭
-                        break;
-                    case 2:
-                        LED_Bink_Mode[SYS_LED_INDEX] = LED_05tps;    // 5t/s
-                        break;
-                    case 3:
-                        LED_Bink_Mode[SYS_LED_INDEX] = LED_10tps;    // 10t/s
-                        break;
+                if(SYS_STATE_BITMAP & SYS_RUNNING_BREAK_STATE_Bit)
+                {   // 系统故障
+                    LED_Bink_Mode[SYS_LED_INDEX] = LED_OFF_MODE;     // 常灭
+                }
+                else
+                {   // 系统正常运行
+                    LED_Bink_Mode[SYS_LED_INDEX] = LED_not_Blink_MODE;      // 常亮
+                    if(SYS_STATE_BITMAP & SYS_USB_NEW_STATE_Bit)
+                    {
+                        SYS_STATE_BITMAP &= ~SYS_USB_NEW_STATE_Bit;
+                        LED_Bink_Mode[SYS_LED_INDEX] = LED_Blink_2t_MODE;     // USB 连接/断开：闪两次
+                    }
+                    else if(SYS_STATE_BITMAP & SYS_BLE_NEW_STATE_Bit)
+                    {
+                        SYS_STATE_BITMAP &= ~SYS_BLE_NEW_STATE_Bit;
+                        LED_Bink_Mode[SYS_LED_INDEX] = LED_Blink_2t_MODE;     // BLE 连接/断开：闪两次
+                    }
+                    else if(SYS_STATE_BITMAP & SYS_UART_FLASHING_STATE_Bit)
+                        LED_Bink_Mode[SYS_LED_INDEX] = LED_Blink_05tps_MODE;   // 烧录中：每秒闪5次
+                    else if((SYS_STATE_BITMAP & SYS_UART_TX_ACTION_Bit) || (SYS_STATE_BITMAP & SYS_UART_RX_ACTION_Bit))
+                        LED_Bink_Mode[SYS_LED_INDEX] = LED_Blink_10tps_MODE;   // UART ACTION：每秒闪10次
+                    else if(SYS_STATE_BITMAP & SYS_KEY_ACTION_Bit)
+                        LED_Bink_Mode[SYS_LED_INDEX] = LED_OFF_MODE;     // 按下SYS按键：LED熄灭，ESP32 EN = 0
                 }
                 break;
             case USR_LED_INDEX:
                 if(Pin_state(GPIO_G2_Pin))
                 {
-                    LED_Bink_Mode[USR_LED_INDEX] = 0x80;
+                    LED_Bink_Mode[USR_LED_INDEX] = LED_not_Blink_MODE;
                 }
                 else
                 {
-                    LED_Bink_Mode[USR_LED_INDEX] = 0x00;
+                    LED_Bink_Mode[USR_LED_INDEX] = LED_OFF_MODE;
                 }
                 break;
             default:
@@ -204,12 +271,12 @@ void KEY_Handle(uint8_t KEY_Index, uint8_t KEY_Event)
                 if(KEY_OUT == KEY_FALLING_EVENT)
                 {
                     Pin_Ctrl(BOOT_EN_Pin, GPIO_LOW);
-                    DFT_SYS_LED_STATE = LED_OFF;
+                    SYS_STATE_BITMAP |= SYS_KEY_ACTION_Bit;
                 }
                 else
                 {
                     Pin_Ctrl(BOOT_EN_Pin, GPIO_HIGH);
-                    DFT_SYS_LED_STATE = LED_ON;
+                    SYS_STATE_BITMAP &= ~SYS_KEY_ACTION_Bit;
                 }
                 break;
             case USR_KEY_INDEX:
@@ -296,78 +363,19 @@ uint16_t App_ProcessEvent(uint8 task_id, uint16 events)
     }
     if(events & LED_UPDATE_EVT)
     {
-        LED_Handle(SYS_LED_INDEX);
-        LED_Handle(USR_LED_INDEX);
+        // 已弃用
         return (events ^ LED_UPDATE_EVT);
     }
     if(events & SYS_LED_EVT)
     {
-        static uint8_t event_count = 0;
-        uint8_t TEMP_LED_STATE = LED_Bink_Mode[SYS_LED_INDEX];
-        event_count++;
-        if(event_count >= 8)
-            event_count = 0;
-        if(TEMP_LED_STATE & LED_MODE_EN_Bit)
-        {
-            TEMP_LED_STATE &= ~LED_MODE_EN_Bit;
-            switch(TEMP_LED_STATE)
-            {
-                case LED_not_Blink_MODE:
-                    Pin_Ctrl(User_LED_Pin, GPIO_HIGH);
-                break;
-                case LED_Blink_05tps_MODE:
-                    if(event_count == 0)
-                        Pin_Ctrl(User_LED_Pin, GPIO_INVER);
-                break;
-                case LED_Blink_10tps_MODE:
-                    if(event_count == 0)
-                        Pin_Ctrl(User_LED_Pin, GPIO_INVER);
-                    if(event_count == 4)
-                        Pin_Ctrl(User_LED_Pin, GPIO_INVER);
-                break;
-                default:
-                break;
-            }
-        }
-        else
-        {
-            Pin_Ctrl(User_LED_Pin, GPIO_LOW);
-        }
+        LED_Handle(SYS_LED_INDEX);
+        LED_Ctrl(SYS_LED_INDEX, LED_Bink_Mode[SYS_LED_INDEX]);
         return (events ^ SYS_LED_EVT);
     }
     if(events & USR_LED_EVT)
     {
-        static uint8_t event_count = 0;
-        uint8_t TEMP_LED_STATE = LED_Bink_Mode[USR_LED_INDEX];
-        event_count++;
-        if(event_count >= 8)
-            event_count = 0;
-        if(TEMP_LED_STATE & LED_MODE_EN_Bit)
-        {
-            TEMP_LED_STATE &= ~LED_MODE_EN_Bit;
-            switch(TEMP_LED_STATE)
-            {
-                case LED_not_Blink_MODE:
-                    Pin_Ctrl(User_LED_Pin, GPIO_HIGH);
-                break;
-                case LED_Blink_05tps_MODE:
-                    if(event_count == 0)
-                        Pin_Ctrl(User_LED_Pin, GPIO_INVER);
-                break;
-                case LED_Blink_10tps_MODE:
-                    if(event_count == 0)
-                        Pin_Ctrl(User_LED_Pin, GPIO_INVER);
-                    if(event_count == 4)
-                        Pin_Ctrl(User_LED_Pin, GPIO_INVER);
-                break;
-                default:
-                break;
-            }
-        }
-        else
-        {
-            Pin_Ctrl(User_LED_Pin, GPIO_LOW);
-        }
+        LED_Handle(USR_LED_INDEX);
+        LED_Ctrl(USR_LED_INDEX, LED_Bink_Mode[USR_LED_INDEX]);
         return (events ^ USR_LED_EVT);
     }
     if(events & KEY_SHAKE_EVT)
@@ -458,9 +466,9 @@ void APP_task_Init(void)
     APP_TaskID = TMOS_ProcessEventRegister(App_ProcessEvent);
     tmos_start_reload_task(APP_TaskID, SYS_KEY_EVT, 20);    // 12.5ms
     tmos_start_reload_task(APP_TaskID, USR_KEY_EVT, 20);    // 12.5ms
-    tmos_start_reload_task(APP_TaskID, SYS_LED_EVT, 80);    // 50ms
+    tmos_start_reload_task(APP_TaskID, SYS_LED_EVT, 20);    // 50ms
     tmos_start_reload_task(APP_TaskID, USR_LED_EVT, 20);    // 12.5ms
-    tmos_start_reload_task(APP_TaskID, LED_UPDATE_EVT, 20);    // 12.5ms
+    // tmos_start_reload_task(APP_TaskID, LED_UPDATE_EVT, 20);    // 12.5ms //已弃用
 }
 
 void BOOT_CTRL_LINE_Check(uint8_t COM_CTRL_LINE_STATE)
@@ -483,7 +491,7 @@ void BOOT_CTRL_LINE_Check(uint8_t COM_CTRL_LINE_STATE)
       case ESP32_DLDEND_STATE:
         // 烧录完成信号
         *APP_BOOT_State = ESP32_Reset_NOW;
-        DFT_SYS_LED_STATE = LED_ON;
+        SYS_STATE_BITMAP &= ~SYS_UART_FLASHING_STATE_Bit;
         break;
       case ESP32_RST_STATE:
         // 串口软件打开信号
@@ -513,7 +521,7 @@ void BOOT_Serial_Chack(uint8_t First_bit)
             if(First_bit == ESP32_BOOT_F_Bit) 
             {
                 *APP_BOOT_State = ESP32_BOOT_NOW;
-                DFT_SYS_LED_STATE = LED_10tps;      // 快闪
+                SYS_STATE_BITMAP |= SYS_UART_FLASHING_STATE_Bit;
                 Timer_Task_Stop();
             }
         }

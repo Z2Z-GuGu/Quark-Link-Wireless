@@ -17,7 +17,7 @@ RM := rm -rf
 -include QLW_lib/ble_task/subdir.mk
 -include QLW_lib/app_drv_fifo/subdir.mk
 -include QLW_lib/Storage/subdir.mk
--include QLW_lib/Blinker/subdir.mk
+-include QLW_lib/SYS_Config/subdir.mk
 -include Main/subdir.mk
 -include HAL/subdir.mk
 -include APP/subdir.mk

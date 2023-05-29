@@ -973,22 +973,24 @@ void USB_IRQHandler(void)
     R8_UEP2_CTRL = UEP_R_RES_ACK | UEP_T_RES_NAK | RB_UEP_AUTO_TOG;
     R8_UEP3_CTRL = UEP_R_RES_ACK | UEP_T_RES_NAK | RB_UEP_AUTO_TOG;
     R8_USB_INT_FG = RB_UIF_BUS_RST;
- }
+  }
   else if (intflag & RB_UIF_SUSPEND)
   {
     if (R8_USB_MIS_ST & RB_UMS_SUSPEND)
-    {
-      ;
-   }     // ¹ÒÆð
+    {     // ¹ÒÆð
+      SYS_STATE_BITMAP |= SYS_USB_NEW_STATE_Bit;
+      SYS_STATE_BITMAP &= ~SYS_USB_CONNECT_STATE_Bit;
+    }
     else
-    {
-      ;
-   }     // »½ÐÑ
+    {     // »½ÐÑ
+      SYS_STATE_BITMAP |= SYS_USB_NEW_STATE_Bit;
+      SYS_STATE_BITMAP |= SYS_USB_CONNECT_STATE_Bit;
+    }
     R8_USB_INT_FG = RB_UIF_SUSPEND;
- }
+  }
   else
   {
     R8_USB_INT_FG = intflag;
- }
-          DEBUG_PIN(USB_Pin, GPIO_LOW);
+  }
+  DEBUG_PIN(USB_Pin, GPIO_LOW);
 }

@@ -25,7 +25,7 @@ SUBDIRS := \
 APP \
 HAL \
 Main \
-QLW_lib/Blinker \
+QLW_lib/SYS_Config \
 QLW_lib/Storage \
 QLW_lib/app_drv_fifo \
 QLW_lib/ble_task \

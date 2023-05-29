@@ -1,4 +1,6 @@
-Main/main.o: ../Main/main.c ../Main/projconfig.h \
+QLW_lib/SYS_Config/SYS_Config.o: ../QLW_lib/SYS_Config/SYS_Config.c \
+ ../QLW_lib/SYS_Config/SYS_Config.h ../QLW_lib/SYS_Config/jsmn.h \
+ C:\Project\CH573F\Quark_Link_Wireless\Main/projconfig.h \
  C:\Project\CH573F\Quark_Link_Wireless\HAL\include/config.h \
  C:\Project\CH573F\Quark_Link_Wireless\LIB/CH57xBLE_LIB.H \
  C:\Project\CH573F\Quark_Link_Wireless\StdPeriphDriver\inc/CH57x_common.h \
@@ -17,26 +19,27 @@ Main/main.o: ../Main/main.c ../Main/projconfig.h \
  C:\Project\CH573F\Quark_Link_Wireless\StdPeriphDriver\inc/CH57x_usbdev.h \
  C:\Project\CH573F\Quark_Link_Wireless\StdPeriphDriver\inc/CH57x_usbhost.h \
  C:\Project\CH573F\Quark_Link_Wireless\StdPeriphDriver\inc/ISP573.h \
+ C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\app_drv_fifo/app_drv_fifo.h \
+ C:\Project\CH573F\Quark_Link_Wireless\APP/APP.h \
  C:\Project\CH573F\Quark_Link_Wireless\HAL\include/HAL.h \
- C:\Project\CH573F\Quark_Link_Wireless\Main/projconfig.h \
  C:\Project\CH573F\Quark_Link_Wireless\HAL\include/config.h \
  C:\Project\CH573F\Quark_Link_Wireless\HAL\include/RTC.h \
  C:\Project\CH573F\Quark_Link_Wireless\HAL\include/SLEEP.h \
  C:\Project\CH573F\Quark_Link_Wireless\HAL\include/LED.h \
  C:\Project\CH573F\Quark_Link_Wireless\HAL\include/KEY.h \
- C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\Storage/Storage.h \
+ C:\Project\CH573F\Quark_Link_Wireless\APP/APP.h \
  C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\boardbase/boardbase.h \
- C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\SYS_Config/SYS_Config.h \
- C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\SYS_Config/jsmn.h \
- C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\app_drv_fifo/app_drv_fifo.h \
- C:\Project\CH573F\Quark_Link_Wireless\APP/APP.h \
- C:\Project\CH573F\Quark_Link_Wireless\APP/APP.h \
  C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\ble_task/ble_task.h \
  C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\uart_task/uart_task.h \
+ C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\Storage/Storage.h \
  C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\usb_task/usb_task.h \
  C:\Project\CH573F\Quark_Link_Wireless\HAL\include/CONFIG.h
 
-../Main/projconfig.h:
+../QLW_lib/SYS_Config/SYS_Config.h:
+
+../QLW_lib/SYS_Config/jsmn.h:
+
+C:\Project\CH573F\Quark_Link_Wireless\Main/projconfig.h:
 
 C:\Project\CH573F\Quark_Link_Wireless\HAL\include/config.h:
 
@@ -74,9 +77,11 @@ C:\Project\CH573F\Quark_Link_Wireless\StdPeriphDriver\inc/CH57x_usbhost.h:
 
 C:\Project\CH573F\Quark_Link_Wireless\StdPeriphDriver\inc/ISP573.h:
 
-C:\Project\CH573F\Quark_Link_Wireless\HAL\include/HAL.h:
+C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\app_drv_fifo/app_drv_fifo.h:
 
-C:\Project\CH573F\Quark_Link_Wireless\Main/projconfig.h:
+C:\Project\CH573F\Quark_Link_Wireless\APP/APP.h:
+
+C:\Project\CH573F\Quark_Link_Wireless\HAL\include/HAL.h:
 
 C:\Project\CH573F\Quark_Link_Wireless\HAL\include/config.h:
 
@@ -88,23 +93,15 @@ C:\Project\CH573F\Quark_Link_Wireless\HAL\include/LED.h:
 
 C:\Project\CH573F\Quark_Link_Wireless\HAL\include/KEY.h:
 
-C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\Storage/Storage.h:
+C:\Project\CH573F\Quark_Link_Wireless\APP/APP.h:
 
 C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\boardbase/boardbase.h:
-
-C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\SYS_Config/SYS_Config.h:
-
-C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\SYS_Config/jsmn.h:
-
-C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\app_drv_fifo/app_drv_fifo.h:
-
-C:\Project\CH573F\Quark_Link_Wireless\APP/APP.h:
-
-C:\Project\CH573F\Quark_Link_Wireless\APP/APP.h:
 
 C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\ble_task/ble_task.h:
 
 C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\uart_task/uart_task.h:
+
+C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\Storage/Storage.h:
 
 C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\usb_task/usb_task.h:
 

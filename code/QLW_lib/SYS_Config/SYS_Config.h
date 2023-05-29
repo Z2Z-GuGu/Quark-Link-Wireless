@@ -1,11 +1,11 @@
-/*  @name       Blinker.h
- *  @brief      兼容Blinker的CH57xBLE工程
+/*  @name       SYS_Config.h
+ *  @brief      兼�?�Blinker的CH57xBLE工程
  *  @author     Z2Z
- *  @date       2023/2/10
+ *  @date       2023/5/29
  */
 
-#ifndef BLINKER_H
-#define BLINKER_H
+#ifndef SYS_CONFIG__H_
+#define SYS_CONFIG__H_
 
 #define JSMN_HEADER
 
@@ -15,6 +15,7 @@
 #include "projconfig.h"
 #include "config.h"
 #include "app_drv_fifo.h"
+#include "APP.h"
 
 #define object_token        0
 #define assembly_token      1
@@ -41,4 +42,4 @@ int8_t blinker_data_analaysis(char *JSON_string, size_t JSON_len, blinker_univer
 
 uint8_t Blinker_send(app_drv_fifo_t *fifo, uint8_t *data, uint16_t write_length, tmosTaskID taskID, tmosEvents event);
 
-#endif
+#endif  // SYS_CONFIG__H_

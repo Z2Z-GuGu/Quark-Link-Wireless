@@ -28,8 +28,7 @@ QLW_lib/usb_task/usb_task.o: ../QLW_lib/usb_task/usb_task.c \
  C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\app_drv_fifo/app_drv_fifo.h \
  C:\Project\CH573F\Quark_Link_Wireless\HAL\include/config.h \
  C:\Project\CH573F\Quark_Link_Wireless\APP/APP.h \
- C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\Blinker/blinker.h \
- C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\Blinker/jsmn.h \
+ C:\Project\CH573F\Quark_Link_Wireless\APP/APP.h \
  C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\boardbase/boardbase.h \
  C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\ble_task/ble_task.h \
  C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\uart_task/uart_task.h \
@@ -94,9 +93,7 @@ C:\Project\CH573F\Quark_Link_Wireless\HAL\include/config.h:
 
 C:\Project\CH573F\Quark_Link_Wireless\APP/APP.h:
 
-C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\Blinker/blinker.h:
-
-C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\Blinker/jsmn.h:
+C:\Project\CH573F\Quark_Link_Wireless\APP/APP.h:
 
 C:\Project\CH573F\Quark_Link_Wireless\QLW_lib\boardbase/boardbase.h:
 

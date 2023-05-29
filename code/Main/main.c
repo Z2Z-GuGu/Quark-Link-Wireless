@@ -13,7 +13,7 @@
 #include "HAL.h"
 
 #include "Storage.h"
-#include "blinker.h"
+#include "SYS_Config.h"
 #include "boardbase.h"
 #include "APP.h"
 #include "ble_task.h"
