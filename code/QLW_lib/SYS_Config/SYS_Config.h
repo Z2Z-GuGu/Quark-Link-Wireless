@@ -1,7 +1,9 @@
-/*  @name       SYS_Config.h
- *  @brief      鍏煎?笲linker鐨凜H57xBLE宸ョ▼
- *  @author     Z2Z
- *  @date       2023/5/29
+/*  
+ *  @name       SYS_Config.h
+ *  @brief      使用Json字符串对系统功能进行配置
+ *  @author     Z2Z-GuGu
+ *  @date       2023/2/10
+ *  @code       GB2312
  */
 
 #ifndef SYS_CONFIG__H_

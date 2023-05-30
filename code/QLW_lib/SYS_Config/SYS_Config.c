@@ -1,33 +1,29 @@
 /***
- *  @name       Blinker.h
- *  @brief      éç…î†Blinkeré¨å‡œH57xBLEå®¸ãƒ§â–¼
- *  @author     Z2Z
+ *  @name       SYS_Config.c
+ *  @brief      Ê¹ÓÃJson×Ö·û´®¶ÔÏµÍ³¹¦ÄÜ½øĞĞÅäÖÃ
+ *  @author     Z2Z-GuGu
  *  @date       2023/2/10
- *  @code       utf-8
+ *  @code       GB2312
  */
 
 #include "SYS_Config.h"
 
-// tokenå§¹ï¿½
+// token×Ö·û´®
 jsmntok_t token_pool[16];
-// jsonéç‰ˆåµ ç€›æ¨»æ–å¯°å‘°Ğ’é‹æ„®æ®‘jsonéç‰ˆåµ
-// static char JSON_STRING[128];
 
-// extern const char blinker_object[3];
-// extern const char blinker_keyword[8];
 const char* blinker_object[] = {
-  "get", "btn-123", "btn-7ty", "btn-yoe", "btn-hn0", "joy-3ck", "joy-93l", "ran-e3v", "ran-t5r", "col-5gs"};     //ä»¥æŒ‡é’ˆå½¢å¼å®šä¹‰ï¼Œåé¢å¾—æ”¹ä¸‹é¢çš„å–å€¼å½¢å¼
+  "get", "btn-123", "btn-7ty", "btn-yoe", "btn-hn0", "joy-3ck", "joy-93l", "ran-e3v", "ran-t5r", "col-5gs"};
 const char* blinker_keyword[] = {
   "state", "val", "tap", "on", "off", "press", "pressup"};
 
 /****************************************************************************
  * @fn      jsoneq
- * @brief   ç€›æ¥ƒîƒæ¶“å‰ç˜®æˆå†¨åš±éï¿½
- * @param   json  å¯°å‘°Ğ’é‹æ„®æ®‘ç€¹å±¾æš£jsonç€›æ¥ƒîƒæ¶“æŸ¥î›»é¦æ¿æ½ƒ
- * @param   tok   æµ£è·¨æ•¤tokenå§¹çŠµæ®‘éèœ‚ç¶‹tokenæ££æ §æ¹´é§ï¿½é”›å±½î›§&token_pool[1]
- * @param   s     ç‘•ä½¹ç˜®ç€µåœ­æ®‘éæŠ½æ•­ç€›æ¥€ç“§ç»—ï¸¿è¦†é”›å±½î›§"user"
- * @return  0     ç€›æ¥ƒîƒæ¶“è¹­ç¬‰éšï¿½
- *          1     ç€›æ¥ƒîƒæ¶“èŒ¬æµ‰éšï¿½
+ * @brief   Json tok ×Ö·û´®±È¶Ô
+ * @param   json  json ×Ö·û´®
+ * @param   tok   jsmn token³Ø ´ı±È¶ÔtokrnÎ»ÖÃ 
+ * @param   s     ±È¶Ô token Öµ
+ * @return  0     token ÏàÍ¬
+ *          1     token ²»Í¬
  ****************************************************************************/
 static int jsoneq(char *json, jsmntok_t *tok, const char *s) 
 {
@@ -41,12 +37,12 @@ static int jsoneq(char *json, jsmntok_t *tok, const char *s)
 
 /****************************************************************************
  * @fn      string_to_uint16
- * @date    20203/2/11
+ * @date    2023/2/11
  * @author  Z2Z-gugu
- * @brief   å­—ç¬¦ä¸²è½¬æ•°å­—ï¼Œå°†ç ´åæœ«å°¾åŸæ•°æ®
- * @param   string_start  å­—ç¬¦ä¸²é¦–ä½ç½®
- * @param   string_len    å­—ç¬¦ä¸²é•¿åº¦
- * @return  è½¬æ¢åçš„æ•°å­—
+ * @brief   ×Ö·û´®×ªÊı×Ö£¬½«ÆÆ»µÄ©Î²Ô­Êı¾İ
+ * @param   string_start  ×Ö·û´®Ê×Î»ÖÃ
+ * @param   string_len    ×Ö·û´®³¤¶È
+ * @return  ×ª»»ºóµÄÊı×Ö
  ***************************************************************************/
 uint16_t string_to_uint16(char *string_start, size_t string_len)
 {
@@ -56,20 +52,20 @@ uint16_t string_to_uint16(char *string_start, size_t string_len)
 
 /****************************************************************************
  * @fn      blinker_data_analaysis
- * @date    20203/2/11
+ * @date    2023/2/11
  * @author  Z2Z-gugu
- * @brief   å°†è¾“å…¥çš„å­—ç¬¦ä¸²è§£æä¸ºæ ‡å‡†blinkeræ•°æ®ç»“æ„ä½“
- * @param   JSON_string             å­—ç¬¦ä¸²é¦–ä½ç½®
- * @param   JSON_len                å­—ç¬¦ä¸²é•¿åº¦
- * @param   blinker_universal_data  æ ‡å‡†blinkeræ•°æ®ç»“æ„ä½“
- * @return  0   æ­£å¸¸
- *          -1  è§£æé”™è¯¯
+ * @brief   ½«ÊäÈëµÄ×Ö·û´®½âÎöÎª±ê×¼blinkerÊı¾İ½á¹¹Ìå
+ * @param   JSON_string             ×Ö·û´®Ê×Î»ÖÃ
+ * @param   JSON_len                ×Ö·û´®³¤¶È
+ * @param   blinker_universal_data  ±ê×¼blinkerÊı¾İ½á¹¹Ìå
+ * @return  0   Õı³£
+ *          -1  ½âÎö´íÎó
  ***************************************************************************/
 int8_t blinker_data_analaysis(char *JSON_string, size_t JSON_len, blinker_universal_data_t *blinker_universal_data)
 {
   int token_num;          //r
   uint8_t count;          //i
-  jsmn_parser jsmn_p;     //jsmnè§£æå™¨
+  jsmn_parser jsmn_p;     //jsmn½âÎöÆ÷
 
   blinker_universal_data->blinker_assembly_index = 0xff;
   blinker_universal_data->blinker_keyword_index = 0xff;
@@ -78,7 +74,7 @@ int8_t blinker_data_analaysis(char *JSON_string, size_t JSON_len, blinker_univer
   blinker_universal_data->blinker_key_value[2] = 0xffff;
   blinker_universal_data->blinker_key_value[3] = 0xffff;
 
-  jsmn_init(&jsmn_p);     // åˆå§‹åŒ–jsonè§£æå™¨
+  jsmn_init(&jsmn_p);     // ³õÊ¼»¯json½âÎöÆ÷
   token_num = jsmn_parse(&jsmn_p, JSON_string, JSON_len, \
                           token_pool, sizeof(token_pool) / sizeof(token_pool[0]));
 
@@ -117,14 +113,14 @@ for(count = 0;count < token_num; count++)
 [   3][    2][  8][   1]
 [   4][   10][ 13][   0]
 */
-  // tokenæ± ç¬¬äºŒå…ƒç´ å±äºblinker_assemblyï¼Œé€ä¸ªæ¯”å¯¹
+  // token³ØµÚ¶şÔªËØÊôÓÚblinker_assembly£¬Öğ¸ö±È¶Ô
   if (token_pool[assembly_token].type == JSMN_STRING) 
   {
     for (count = 0; count < assembly_num; count++)      // object_count
     {
       if (jsoneq(JSON_string, &token_pool[assembly_token], blinker_object[count]) == 1)
       {
-        // ä¿å­˜indexå€¼
+        // ±£´æindex
         blinker_universal_data->blinker_assembly_index = count;
         break;
       }
@@ -148,7 +144,7 @@ for(count = 0;count < token_num; count++)
       {
         if (jsoneq(JSON_string, &token_pool[value_token], blinker_keyword[count]) == 1)
         {
-          // ä¿å­˜keyword index
+          // ±£´ækeyword index
           blinker_universal_data->blinker_keyword_index = count;
           break;
         }
@@ -213,15 +209,15 @@ data = 65535, 65535, 65535, 65535
  * @fn      Blinker_send
  * @author  Z2Z-gugu
  * @date    2023/2/12
- * @brief   å‘é€Blinkerè“ç‰™ä¿¡æ¯
- * @note    ä¸¥ç¦åœ¨ä¸­æ–­ä¸­ä½¿ç”¨è¯¥å‡½æ•°
- * @param   fifo    å¾…å†™å…¥çš„fifoï¼Œå¦‚app_uart_rx_fifo
- * @param   data    è¦å†™å…¥çš„å­—ç¬¦ä¸²é¦–åœ°å€ï¼Œå¦‚TEMP_STR
- * @param   write_length    æ•°æ®é•¿åº¦ï¼Œå¦‚strlen(TEMP_STR)
- * @param   taskID  è“ç‰™ä»»åŠ¡IDï¼Œå¦‚Peripheral_TaskID
- * @param   event   è“ç‰™å‘é€ä»»åŠ¡ç¼–ç ï¼Œå¦‚UART_TO_BLE_SEND_EVT
- * @return  0       å‘é€å¤±è´¥
- *          1       å‘é€æˆåŠŸ
+ * @brief   ·¢ËÍBlinkerÀ¶ÑÀĞÅÏ¢
+ * @note    ÑÏ½ûÔÚÖĞ¶ÏÖĞÊ¹ÓÃ¸Ãº¯Êı
+ * @param   fifo    ´ıĞ´ÈëµÄfifo£¬Èçapp_uart_rx_fifo
+ * @param   data    ÒªĞ´ÈëµÄ×Ö·û´®Ê×µØÖ·£¬ÈçTEMP_STR
+ * @param   write_length    Êı¾İ³¤¶È£¬Èçstrlen(TEMP_STR)
+ * @param   taskID  À¶ÑÀÈÎÎñID£¬ÈçPeripheral_TaskID
+ * @param   event   À¶ÑÀ·¢ËÍÈÎÎñ±àÂë£¬ÈçUART_TO_BLE_SEND_EVT
+ * @return  0       ·¢ËÍÊ§°Ü
+ *          1       ·¢ËÍ³É¹¦
  ********************************************/
 uint8_t Blinker_send(app_drv_fifo_t *fifo, uint8_t *data, uint16_t write_length, tmosTaskID taskID, tmosEvents event)
 {
