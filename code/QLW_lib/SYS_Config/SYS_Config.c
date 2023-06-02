@@ -1,6 +1,6 @@
 /***
  *  @name       SYS_Config.c
- *  @brief      使用Json字符串对系统功能进行配置
+ *  @brief      使用Json字符串对系统功能进行配置，兼容软件Blinker
  *  @author     Z2Z-GuGu
  *  @date       2023/2/10
  *  @code       GB2312
@@ -15,6 +15,15 @@ const char* blinker_object[] = {
   "get", "btn-123", "btn-7ty", "btn-yoe", "btn-hn0", "joy-3ck", "joy-93l", "ran-e3v", "ran-t5r", "col-5gs"};
 const char* blinker_keyword[] = {
   "state", "val", "tap", "on", "off", "press", "pressup"};
+
+const uint8_t SYS_Order_Group_NUM = 9;
+const uint8_t Order_Keyword_NUM = 5;
+const char* SYS_Order_Group[] = {
+  "EN", "SL", "UL", "SK", "UK", "BO", "GT", "ST", "ge"};
+const char* Order_Keyword[] = {
+  "on", "off", "press", "pressup", "tap", "state"};
+const char *SYS_Order_Member[] = {
+  "BU", "UB", "SD", "D", "I", "C", "L", "S", "U", "Q", "A", "E", "O", "T", "SS", "SL", "UL", "SK", "UK"};
 
 /****************************************************************************
  * @fn      jsoneq
@@ -36,6 +45,25 @@ static int jsoneq(char *json, jsmntok_t *tok, const char *s)
 }
 
 /****************************************************************************
+ * @fn      jsoneq_l2
+ * @brief   Json tok 字符串前二位比对
+ * @param   json  json 字符串
+ * @param   tok   jsmn token池 待比对tokrn位置
+ * @param   s     比对 token 值
+ * @return  0     token 相同
+ *          1     token 不同
+ ****************************************************************************/
+static int jsoneq_l2(char *json, jsmntok_t *tok, const char *s) 
+{
+  if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
+      strncmp(json + tok->start, s, 2) == 0) 
+  {
+    return 1;
+  }
+  return 0;
+}
+
+/****************************************************************************
  * @fn      string_to_uint16
  * @date    2023/2/11
  * @author  Z2Z-gugu
@@ -48,6 +76,290 @@ uint16_t string_to_uint16(char *string_start, size_t string_len)
 {
   string_start[string_len] = '\0';
   return atoi(string_start);
+}
+
+uint8_t SYS_Config_by_Json(char *JSON_string, size_t JSON_len, char *OUTPUT_string, uint8_t *OUTPUT_len)
+{
+  int token_num;          //r
+  int8_t Ctrl_State = -1;
+  uint16_t TEMP_Param[2] = {0};
+  uint8_t count;          //i
+  uint8_t SYS_Order_Group_Index = 0xff;
+  jsmn_parser jsmn_p;     //jsmn解析器
+
+  jsmn_init(&jsmn_p);     // 初始化json解析器
+  token_num = jsmn_parse(&jsmn_p, JSON_string, JSON_len, \
+                          token_pool, sizeof(token_pool) / sizeof(token_pool[0]));
+
+  if (token_num < 0) 
+  {
+    PRINT("Failed to parse JSON: %d\n", token_num);
+    return -1;
+  }  
+  /* Assume the top-level element is an object */
+  if (token_num < 1 || token_pool[object_token].type != JSMN_OBJECT) 
+  {
+    PRINT("Object unexpected\n");
+    return -1;
+  }
+
+  // token池第二元素属于SYS Config Keyword，逐个比对前两位字符，确定SYS Config类
+  for (count = 0; count < SYS_Order_Group_NUM; count++)      // object_count
+  {
+    if (jsoneq_l2(JSON_string, &token_pool[assembly_token], SYS_Order_Group[count]) == 1)
+    {
+      // 保存index
+      SYS_Order_Group_Index = count;
+      if(count == 8) // {"get":"state"} 兼容Blinker
+      {
+        *OUTPUT_len = sprintf(OUTPUT_len, "{\"state\":\"connected\"}\n");
+        return 0;
+      }
+      break;
+    }
+  }
+  if(SYS_Order_Group_Index == 0xff)
+  {
+    PRINT("Get unknown assembly: %.*s\n", token_pool[assembly_token].end - token_pool[assembly_token].start, JSON_string + token_pool[assembly_token].start);
+    return -1;
+  }
+  // Ctrl_State = ?
+  if(token_pool[value_token].type == JSMN_STRING)
+  {
+    for (count = 0; count < keyword_num; count++)   // keyword_count
+    {
+      if (jsoneq(JSON_string, &token_pool[value_token], blinker_keyword[count]) == 1)
+      {
+        // 保存keyword index
+        blinker_universal_data->blinker_keyword_index = count;
+        if(count == 0 || count == 2)  // on/press
+          Ctrl_State = 1;
+        else if(count == 1 || count == 3)
+          Ctrl_State = 0;
+        else if(count == 1)
+        {
+          Ctrl_State = 2; // 
+          TEMP_Param[0] = (uint16_t)((JSON_string[10] << 8) | JSON_string[11]);
+          TEMP_Param[1] = (uint16_t)((JSON_string[12] << 8) | JSON_string[13]);
+        }
+        break;
+      }
+    }
+  }
+  // 开始判断子项
+  // "EN", "SL", "UL", "SK", "UK", "BO", "GT", "ST"};
+  switch(SYS_Order_Group_Index)
+  {
+    case 0:   //EN
+      switch(JSON_string[5])
+      {
+        case 'B':
+          SYS_Param_Config(SYS_STATE_Inex, SYS_BLE_to_UART_EN_Bit, Ctrl_State);
+          break;
+        case 'U':
+          SYS_Param_Config(SYS_STATE_Inex, SYS_UART_to_BLE_EN_Bit, Ctrl_State);
+          break;
+        case 'F':
+          SYS_Param_Config(SYS_STATE_Inex, SYS_GPIO_FREE_MODE_Bit, Ctrl_State);
+          break;
+        case 'S':
+          SYS_Param_Config(SYS_STATE_Inex, SYS_SDIO_MODE_EN_Bit, Ctrl_State);
+          break;
+      }
+      break;
+    case 1:   //SL
+      switch(JSON_string[5])
+      {
+        case 'D':
+          SYS_Param_Config(SYS_LED_STATE_Inex, DFT_LED_MODE_Bit, Ctrl_State);
+          break;
+        case 'I':
+          SYS_Param_Config(SYS_LED_STATE_Inex, LED_POLARITY_Bit, Ctrl_State);
+          break;
+        case 'C':
+          SYS_Param_Config(SYS_LED_STATE_Inex, LED_STATE_from_UART_Bit, Ctrl_State);
+          break;
+        case 'O':
+          SYS_Param_Config(SYS_LED_STATE_Inex, LED_STATE_UART_CTRL_Bit, Ctrl_State);
+          break;
+        case '0':
+          SYS_Param_Config(SYS_LED_STATE_Inex, LED_STATE_from_GPIO0_Bit, Ctrl_State);
+          break;
+        case '1':
+          SYS_Param_Config(SYS_LED_STATE_Inex, LED_STATE_from_GPIO1_Bit, Ctrl_State);
+          break;
+        case '2':
+          SYS_Param_Config(SYS_LED_STATE_Inex, LED_STATE_from_GPIO2_Bit, Ctrl_State);
+          break;
+        case '3':
+          SYS_Param_Config(SYS_LED_STATE_Inex, LED_STATE_from_GPIO3_Bit, Ctrl_State);
+          break;
+        case '4':
+          SYS_Param_Config(SYS_LED_STATE_Inex, LED_STATE_from_GPIO14_Bit, Ctrl_State);
+          break;
+        case '5':
+          SYS_Param_Config(SYS_LED_STATE_Inex, LED_STATE_from_GPIO15_Bit, Ctrl_State);
+          break;
+        case 'Q':
+          SYS_Param_Config(SYS_LED_STATE_Inex, LED_STATE_from_QL_Pin_Bit, Ctrl_State);
+          break;
+      }
+      break;
+    case 2:   //UL
+      switch(JSON_string[5])
+      {
+        case 'D':
+          SYS_Param_Config(USR_LED_STATE_Inex, DFT_LED_MODE_Bit, Ctrl_State);
+          break;
+        case 'I':
+          SYS_Param_Config(USR_LED_STATE_Inex, LED_POLARITY_Bit, Ctrl_State);
+          break;
+        case 'C':
+          SYS_Param_Config(USR_LED_STATE_Inex, LED_STATE_from_UART_Bit, Ctrl_State);
+          break;
+        case 'O':
+          SYS_Param_Config(USR_LED_STATE_Inex, LED_STATE_UART_CTRL_Bit, Ctrl_State);
+          break;
+        case '0':
+          SYS_Param_Config(USR_LED_STATE_Inex, LED_STATE_from_GPIO0_Bit, Ctrl_State);
+          break;
+        case '1':
+          SYS_Param_Config(USR_LED_STATE_Inex, LED_STATE_from_GPIO1_Bit, Ctrl_State);
+          break;
+        case '2':
+          SYS_Param_Config(USR_LED_STATE_Inex, LED_STATE_from_GPIO2_Bit, Ctrl_State);
+          break;
+        case '3':
+          SYS_Param_Config(USR_LED_STATE_Inex, LED_STATE_from_GPIO3_Bit, Ctrl_State);
+          break;
+        case '4':
+          SYS_Param_Config(USR_LED_STATE_Inex, LED_STATE_from_GPIO14_Bit, Ctrl_State);
+          break;
+        case '5':
+          SYS_Param_Config(USR_LED_STATE_Inex, LED_STATE_from_GPIO15_Bit, Ctrl_State);
+          break;
+        case 'Q':
+          SYS_Param_Config(USR_LED_STATE_Inex, LED_STATE_from_QL_Pin_Bit, Ctrl_State);
+          break;
+      }
+      break;
+    case 3:   //SK
+      switch(JSON_string[5])
+      {
+        case 'D':
+          SYS_Param_Config(SYS_KEY_STATE_Inex, DFT_LED_MODE_Bit, Ctrl_State);
+          break;
+        case 'L':
+          SYS_Param_Config(SYS_KEY_STATE_Inex, KEY_LOCK_Bit, Ctrl_State);
+          break;
+        case 'I':
+          SYS_Param_Config(SYS_KEY_STATE_Inex, KEY_POLARITY_Bit, Ctrl_State);
+          break;
+        case 'S':
+          SYS_Param_Config(SYS_KEY_STATE_Inex, KEY_SHAKE_Bit, Ctrl_State);
+          break;
+        case 'U':
+          SYS_Param_Config(SYS_KEY_STATE_Inex, KEY_STATE_to_UART_Bit, Ctrl_State);
+          break;
+        case '0':
+          SYS_Param_Config(SYS_KEY_STATE_Inex, KEY_STATE_to_GPIO0_Bit, Ctrl_State);
+          break;
+        case '1':
+          SYS_Param_Config(SYS_KEY_STATE_Inex, KEY_STATE_to_GPIO1_Bit, Ctrl_State);
+          break;
+        case '2':
+          SYS_Param_Config(SYS_KEY_STATE_Inex, KEY_STATE_to_GPIO2_Bit, Ctrl_State);
+          break;
+        case '3':
+          SYS_Param_Config(SYS_KEY_STATE_Inex, KEY_STATE_to_GPIO3_Bit, Ctrl_State);
+          break;
+        case '4':
+          SYS_Param_Config(SYS_KEY_STATE_Inex, KEY_STATE_to_GPIO14_Bit, Ctrl_State);
+          break;
+        case '5':
+          SYS_Param_Config(SYS_KEY_STATE_Inex, KEY_STATE_to_GPIO15_Bit, Ctrl_State);
+          break;
+        case 'Q':
+          SYS_Param_Config(SYS_KEY_STATE_Inex, KEY_STATE_to_QL_Pin_Bit, Ctrl_State);
+          break;
+      }
+      break;
+    case 4:   //UK
+      switch(JSON_string[5])
+      {
+        case 'D':
+          SYS_Param_Config(USR_KEY_STATE_Inex, DFT_LED_MODE_Bit, Ctrl_State);
+          break;
+        case 'L':
+          SYS_Param_Config(USR_KEY_STATE_Inex, KEY_LOCK_Bit, Ctrl_State);
+          break;
+        case 'I':
+          SYS_Param_Config(USR_KEY_STATE_Inex, KEY_POLARITY_Bit, Ctrl_State);
+          break;
+        case 'S':
+          SYS_Param_Config(USR_KEY_STATE_Inex, KEY_SHAKE_Bit, Ctrl_State);
+          break;
+        case 'U':
+          SYS_Param_Config(USR_KEY_STATE_Inex, KEY_STATE_to_UART_Bit, Ctrl_State);
+          break;
+        case '0':
+          SYS_Param_Config(USR_KEY_STATE_Inex, KEY_STATE_to_GPIO0_Bit, Ctrl_State);
+          break;
+        case '1':
+          SYS_Param_Config(USR_KEY_STATE_Inex, KEY_STATE_to_GPIO1_Bit, Ctrl_State);
+          break;
+        case '2':
+          SYS_Param_Config(USR_KEY_STATE_Inex, KEY_STATE_to_GPIO2_Bit, Ctrl_State);
+          break;
+        case '3':
+          SYS_Param_Config(USR_KEY_STATE_Inex, KEY_STATE_to_GPIO3_Bit, Ctrl_State);
+          break;
+        case '4':
+          SYS_Param_Config(USR_KEY_STATE_Inex, KEY_STATE_to_GPIO14_Bit, Ctrl_State);
+          break;
+        case '5':
+          SYS_Param_Config(USR_KEY_STATE_Inex, KEY_STATE_to_GPIO15_Bit, Ctrl_State);
+          break;
+        case 'Q':
+          SYS_Param_Config(USR_KEY_STATE_Inex, KEY_STATE_to_QL_Pin_Bit, Ctrl_State);
+          break;
+      }
+      break
+    case 5:   //BO
+      // QLW for ESP32
+      break;
+    case 6:   //GT
+      switch(JSON_string[5])
+      {
+        case 'S':
+          *OUTPUT_len = sprintf(OUTPUT_len, "{\"S\":\"%d\"}\n", SYS_STATE_BITMAP);
+          return 0;
+        case 'L':
+          *OUTPUT_len = sprintf(OUTPUT_len, "{\"L\":\"%d%d\"}\n", LED_STATE_BITMAP[0], LED_STATE_BITMAP[1]);
+          return 0;
+        case 'K':
+          *OUTPUT_len = sprintf(OUTPUT_len, "{\"K\":\"%d%d\"}\n", KEY_STATE_BITMAP[0], KEY_STATE_BITMAP[1]);
+          return 0;
+      }
+      break;
+    case 7:   //ST
+      switch(JSON_string[5])
+      {
+        case 'L':
+          LED_STATE_BITMAP[0] = TEMP_Param[0];
+          LED_STATE_BITMAP[1] = TEMP_Param[1];
+          *OUTPUT_len = sprintf(OUTPUT_len, "{\"L\":\"%d%d\"}\n", LED_STATE_BITMAP[0], LED_STATE_BITMAP[1]);
+          return 0;
+        case 'K':
+          KEY_STATE_BITMAP[0] = TEMP_Param[0];
+          KEY_STATE_BITMAP[1] = TEMP_Param[1];
+          *OUTPUT_len = sprintf(OUTPUT_len, "{\"K\":\"%d%d\"}\n", KEY_STATE_BITMAP[0], KEY_STATE_BITMAP[1]);
+          return 0;
+      }
+      break;
+    default: 
+      break;
+  }
 }
 
 /****************************************************************************

@@ -37,6 +37,7 @@ extern "C" {
 #define USR_RST_PREP_EVT    0x0200
 #define KEY_SHAKE_EVT       0x0400
 #define LED_UPDATE_EVT      0x0800
+#define GPIO_CONFIG_EVT     0x1000
 
 #define KEY_SHAKE_COUNT_MAX         3
 
@@ -125,6 +126,8 @@ extern "C" {
 #define LED_STATE_from_GPIO14_Bit       0x0080      // 1: 由GPIO14控制
 #define LED_STATE_from_GPIO15_Bit       0x0100      // 1: 由GPIO15控制
 #define LED_STATE_from_QL_Pin_Bit       0x0200      // 1: 由QL Pin控制
+#define LED_STATE_from_QL_Pin_Bit       0x0200      // 1: 由QL Pin控制
+#define LED_STATE_UART_CTRL_Bit         0x0400      // 1: 由串口、USB、BLE控制
 
 // LED IN DATA BitMap
 #define GPIO0_DATA_Bit                  0x02
@@ -160,6 +163,22 @@ extern "C" {
 #define SYS_KEY_ACTION_Bit              0x0400
 #define SYS_BLE_to_UART_EN_Bit          0x0800
 #define SYS_UART_to_BLE_EN_Bit          0x1000
+#define SYS_GPIO_FREE_MODE_Bit          0x2000
+#define SYS_SDIO_MODE_EN_Bit            0x4000
+
+// SYS_GPIO_BITMAP
+// #define SYS_GPIO_NEW_DATA_Bit           0x0001
+// #define SYS_GPIO_DFT_MODE_Bit           0x0002
+// #define SYS_GPIO_FREE_MODE_Bit          0x0000
+// #define SYS_SDIO_MODE_EN_Bit            0x0000
+
+// SYS Paramter Index
+#define SYS_STATE_Inex                  0x01
+#define SYS_LED_STATE_Inex              0x02
+#define SYS_KEY_STATE_Inex              0x03
+#define USR_LED_STATE_Inex              0x04
+#define USR_KEY_STATE_Inex              0x05
+
 
 #define TIM2_value          (uint16_t)(R32_TMR2_COUNT >>= 16)
 
@@ -171,6 +190,7 @@ extern volatile uint16_t SYS_STATE_BITMAP;
 // extern volatile uint16_t LED_STATE_BITMAP[2];
 // extern volatile uint16_t KEY_STATE_BITMAP[2];
 
+void SYS_Param_Config(uint8_t Param_Inex, uint16_t Param_Bit, uint8_t EN);
 void Set_LED_Blink_Mode(uint8_t _LED_Index, uint8_t _Blink_Mode);
 void All_FIFO_Init(void);
 void APP_task_Init(void);

@@ -450,3 +450,141 @@
   注：请尽量避免 SYS KEY 与 USER KEY 的输出冲突，如两个按键同时配置给GPIO0，冲突产生时，冲突引脚优先同步 USER KEY状态
 
 + IO事件处理架构：经典的输入-处理-输出工作流
+
++ json指令设计
+  + 功能分类
+    0. 使能类指令
+       + BLE -> UART 开/关  (EN-B)
+       + UART -> BLE 开/关  (EN-U)
+       + 是否启用SDIO模式，上拉电阻接管  (EN-S)
+       + 是否启用GPIO FREE模式，浮空全部QLW与ESP32连接的GPIO (EN-F)
+    1. SYS LED控制指令
+       + SYS LED 是否 = 默认模式  (SL-D)
+       + SYS LED 是否 = 控制反转  (SL-I)
+       + SYS LED 是否由（UART/USB/BLE控制）  (SL-C)
+       + SYS LED = 1（UART/USB/BLE控制）  (SL-O)
+       + SYS LED 是否由GPIO0控制  (SL-0)
+       + SYS LED 是否由GPIO1控制  (SL-1)
+       + SYS LED 是否由GPIO2控制  (SL-2)
+       + SYS LED 是否由GPIO3控制  (SL-3)
+       + SYS LED 是否由GPIO14控制  (SL-4)
+       + SYS LED 是否由GPIO15控制  (SL-5)
+       + SYS LED 是否由QL Pin控制  (SL-Q)
+    2. USER LED控制指令
+       + USER LED 是否 = 默认模式  (UL-D)
+       + USER LED 是否 = 控制反转  (UL-I)
+       + USER LED 是否由（UART/USB/BLE控制）  (UL-C)
+       + USER LED = 1（UART/USB/BLE控制）  (UL-O)
+       + USER LED 是否由GPIO0控制  (UL-0)
+       + USER LED 是否由GPIO1控制  (UL-1)
+       + USER LED 是否由GPIO2控制  (UL-2)
+       + USER LED 是否由GPIO3控制  (UL-3)
+       + USER LED 是否由GPIO14控制  (UL-4)
+       + USER LED 是否由GPIO15控制  (UL-5)
+       + USER LED 是否由QL Pin控制  (UL-Q)
+    3. SYS KEY输出模式指令
+       + SYS KEY 是否 = 默认模式  (SK-D)
+       + SYS KEY 是否 = 按键自锁  (SK-L)
+       + SYS KEY 是否 = 极性反转  (SK-I)
+       + SYS KEY 是否 = 抖动模拟  (SK-S)
+       + SYS KEY 是否对UART输出  (SK-U)
+       + SYS KEY 是否对GPIO0输出  (SK-0)
+       + SYS KEY 是否对GPIO1输出  (SK-1)
+       + SYS KEY 是否对GPIO2输出  (SK-2)
+       + SYS KEY 是否对GPIO3输出  (SK-3)
+       + SYS KEY 是否对GPIO14输出  (SK-4)
+       + SYS KEY 是否对GPIO15输出  (SK-5)
+       + SYS KEY 是否对QL Pin输出  (SK-Q)
+    4. USER KEY输出模式指令
+       + USER KEY 是否 = 默认模式  (UK-D)
+       + USER KEY 是否 = 按键自锁  (UK-L)
+       + USER KEY 是否 = 极性反转  (UK-I)
+       + USER KEY 是否 = 抖动模拟  (UK-S)
+       + USER KEY 是否对UART输出  (UK-U)
+       + USER KEY 是否对GPIO0输出  (UK-0)
+       + USER KEY 是否对GPIO1输出  (UK-1)
+       + USER KEY 是否对GPIO2输出  (UK-2)
+       + USER KEY 是否对GPIO3输出  (UK-3)
+       + USER KEY 是否对GPIO14输出  (UK-4)
+       + USER KEY 是否对GPIO15输出  (UK-5)
+       + USER KEY 是否对QL Pin输出  (UK-Q)
+    5. BOOT控制
+       + close BOOT Mode  (BO-C)
+       + BOOT Auto Mode  (BO-A)
+       + BOOT For ESP32  (BO-E)
+       + BOOT For STM32  (BO-S)
+       + BOOT For Arduino  (BO-O)
+       + BOOT For STC  (BO-T)
+    6. 获取系统状态/系统模式变量  (GT-S / GT-L / GT-K)
+    7. 直接修改系统模式变量 (ST-L /  ST-K)
+  + 设计模式开：{"KEY-NAME":"on"} / {"KEY-NAME":"press"}
+  + 设计模式关：{"KEY-NAME":"off"} / {"KEY-NAME":"pressup"}
+  + 获取系统状态：{"GT-SS":"tap"} -- {"SS":"uint16_h/uint16_l"}
+  + 获取SYS LED模式：{"GT-SL":"tap"} -- {"SL":"uint16_h/uint16_l"}
+  + 获取USR LED模式：{"GT-UL":"tap"} -- {"UL":"uint16_h/uint16_l"}
+  + 获取SYS KEY模式：{"GT-SK":"tap"} -- {"SK":"uint16_h/uint16_l"}
+  + 获取USR KEY模式：{"GT-UK":"tap"} -- {"UK":"uint16_h/uint16_l"}
+  + 设置SYS LED模式：{"ST-SL":"uint16_h/uint16_l"} -- {"SL":"uint16_h/uint16_l"}
+  + 默认回复{"KEY-NAME":"OK"}
+  + 未定义命令回复{"Error":"Undefine"}
+  
++ 重构一下GPIO部分，SYS、LED、KEY就不改了：
+  + 全局变量：SYS_GPIO_BITMAP：
+    1. GPIO0 DIR
+    2. GPIO0 PU
+    3. GPIO0 PD
+    4. GPIO0 FUC
+    5. GPIO1 DIR
+    6. GPIO1 PU
+    7. GPIO1 FUC
+    8. GPIO1 DIR
+    9. ...
+  
++ 换个思路：GPIO作用选择：考虑GPIO功能间的互斥原理
+  
+  + uint8_t GPIO_FUNC[5];
+  
+  + 0 = default
+  
+  + 1 = connect to SYS LED
+  
+  + 2 = connect to USER LED
+  
+  + 3 = connect to SYS KEY
+  
+  + 4 = connect to USER KEY
+  
+  + 5 = unique Func
+  
+  + 6 = release
+  
+  + | GPIO_FUNC | GPIO0 | GPIO1 | GPIO2 | GPIO3 | GPIO14 | GPIO15 | QL Pin |
+    | ----: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+    |     0 | USR KEY | RX | USR LED | TX | Release | Release | DEBUG |
+    |     1 | SYS LED | SYS LED | SYS LED | SYS LED | SYS LED | SYS LED | SYS LED |
+    |     2 | USR LED | USR LED | USR LED | USR LED | USR LED | USR LED | USR LED |
+    |     3 | SYS KEY | SYS KEY | SYS KEY | SYS KEY | SYS KEY | SYS KEY | SYS KEY |
+    |     4 | USR KEY | USR KEY | USR KEY | USR KEY | USR KEY | USR KEY | USR KEY |
+    |     5 | USR KEY | RX | USR LED | TX | SDIO | SDIO | DEBUG |
+    |     6 | Release | Release | Release | Release | Release | Release | Release |
+  
++ LED STATE[2]重构
+
+  + 0 = default
+  + 1 = IO控制
+  + 2 = 串口/USB/BLE控制为点亮
+  + 3 = 串口/USB/BLE控制为熄灭
+  + 0x80 = IO是否反转控制（1:低电平控制， 0:高电平控制）
+  
++ IO to LED BitMap
+
++ KEY STATE[2]重构
+
+  + 0 = default
+  + 1 = 对IO输出
+  + 2 = 对UART输出
+  + 0x80 = IO是否反转输出（1:按下高电平， 0:按下低电平）
+  + 0x40 = IO输出是否锁定（1:模拟自锁，0:模拟轻触）
+  + 0x20 = IO输出是否抖动（1:抖动模拟，0:不抖动）
+  
++ KEY to IO BitMap

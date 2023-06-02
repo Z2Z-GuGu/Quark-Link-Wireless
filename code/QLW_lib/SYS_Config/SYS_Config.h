@@ -26,12 +26,9 @@
 #define assembly_num        10
 #define keyword_num         7
 
+// #define assembly_num        10
+
 // #define BKW_get blinker_keyword[0]
-
-
-// char blinker_keyword[8] = {
-//   "get", "state", "val", "tap", "on", "off", "press", "pressup"
-// };
 
 typedef struct
 {
@@ -39,6 +36,14 @@ typedef struct
     uint8_t blinker_keyword_index;        // blinker keyword index
     uint16_t blinker_key_value[4];        // blinker key_value
 } blinker_universal_data_t;
+
+typedef struct
+{
+    char *JSON_string;
+    size_t JSON_len;
+    char *OUTPUT_string;
+    uint8_t OUTPUT_len;
+} SYS_Config_t;
 
 int8_t blinker_data_analaysis(char *JSON_string, size_t JSON_len, blinker_universal_data_t *blinker_universal_data);
 

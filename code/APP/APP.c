@@ -19,7 +19,7 @@ uint8_t *APP_BOOT_State;
 
 // 系统级状态BitMap变量，与Data Flash同步实现掉电保存
 volatile uint16_t SYS_STATE_BITMAP = 0x00;
-
+// volatile uint16_t SYS_GPIO_BITMAP = 0x00;
 // KEY & LED 状态变量
 volatile uint8_t LED_Bink_Mode[2] = {0};
 volatile uint16_t LED_STATE_BITMAP[2] = {0};
@@ -28,6 +28,57 @@ volatile uint16_t KEY_STATE_BITMAP[2] = {0};
 void TIM2_Init()
 {
     TMR2_TimerInit(0x3FFFFFF);
+}
+
+// #define SYS_STATE_Inex                  0x01
+// #define SYS_LED_STATE_Inex              0x02
+// #define SYS_KEY_STATE_Inex              0x03
+// #define USR_LED_STATE_Inex              0x04
+// #define USR_KEY_STATE_Inex              0x05
+void SYS_Param_Config(uint8_t Param_Inex, uint16_t Param_Bit, uint8_t EN)
+{
+    if(EN)
+    {
+        switch(Param_Inex)
+        {
+            case SYS_STATE_Inex:
+                SYS_STATE_BITMAP |= Param_Bit;
+                break;
+            case SYS_LED_STATE_Inex:
+                LED_STATE_BITMAP[SYS_LED_INDEX] |= Param_Bit;
+                break;
+            case SYS_KEY_STATE_Inex:
+                KEY_STATE_BITMAP[SYS_KEY_INDEX] |= Param_Bit;
+                break;
+            case USR_LED_STATE_Inex:
+                LED_STATE_BITMAP[USR_LED_INDEX] |= Param_Bit;
+                break;
+            case USR_KEY_STATE_Inex:
+                KEY_STATE_BITMAP[USR_KEY_INDEX] |= Param_Bit;
+                break;
+        }
+    }
+    else
+    {
+        switch(Param_Inex)
+        {
+            case SYS_STATE_Inex:
+                SYS_STATE_BITMAP |= Param_Bit;
+                break;
+            case SYS_LED_STATE_Inex:
+                LED_STATE_BITMAP[SYS_LED_INDEX] &= ~Param_Bit;
+                break;
+            case SYS_KEY_STATE_Inex:
+                KEY_STATE_BITMAP[SYS_KEY_INDEX] &= ~Param_Bit;
+                break;
+            case USR_LED_STATE_Inex:
+                LED_STATE_BITMAP[USR_LED_INDEX] &= ~Param_Bit;
+                break;
+            case USR_KEY_STATE_Inex:
+                KEY_STATE_BITMAP[USR_KEY_INDEX] &= ~Param_Bit;
+                break;
+        }
+    }
 }
 
 /*******************************************************************************
@@ -143,24 +194,39 @@ void LED_Handle(uint8_t LED_Index)
     uint8_t LED_IN_BitMap = 0x01;
     if(TEMP_LED_STATE_BitMap & DFT_LED_MODE_Bit)
     {   // 自定功能
-        // 原数据获取
-        LED_IN_BitMap |= (Pin_state(GPIO_G0_Pin)? GPIO0_DATA_Bit : 0x00);
-        LED_IN_BitMap |= (Pin_state(GPIO_G1_Pin)? GPIO1_DATA_Bit : 0x00);
-        LED_IN_BitMap |= (Pin_state(GPIO_G2_Pin)? GPIO2_DATA_Bit : 0x00);
-        LED_IN_BitMap |= (Pin_state(GPIO_G3_Pin)? GPIO3_DATA_Bit : 0x00);
-        LED_IN_BitMap |= (Pin_state(GPIO_G14_Pin)? GPIO14_DATA_Bit : 0x00);
-        LED_IN_BitMap |= (Pin_state(GPIO_G15_Pin)? GPIO15_DATA_Bit : 0x00);
-        LED_IN_BitMap |= (Pin_state(Board_QL_Pin)? QL_Pin_DATA_Bit : 0x00);
-        // 数据滤除
-        LED_IN_BitMap &= (uint8_t)((TEMP_LED_STATE_BitMap & LED_DATA_MASK) >> 2);
-        // 数据与&
-        if(LED_IN_BitMap != 0)
+        // UART, BLE, USB控制具有最高优先权
+        if(LED_STATE_BITMAP[LED_Index] & LED_STATE_from_UART_Bit)
         {
-            LED_IN_BitMap = 1;
+            if(LED_STATE_BITMAP[LED_Index] & LED_STATE_UART_CTRL_Bit)
+            {
+                LED_Bink_Mode[LED_Index] |= LED_MODE_EN_Bit;
+            }
+            else
+            {
+                LED_Bink_Mode[LED_Index] &= ~LED_MODE_EN_Bit;
+            }
         }
-        if(TEMP_LED_STATE_BitMap & LED_POLARITY_Bit)
+        else
         {
-            LED_IN_BitMap = !LED_IN_BitMap;
+            // 原数据获取
+            LED_IN_BitMap |= (Pin_state(GPIO_G0_Pin)? GPIO0_DATA_Bit : 0x00);
+            LED_IN_BitMap |= (Pin_state(GPIO_G1_Pin)? GPIO1_DATA_Bit : 0x00);
+            LED_IN_BitMap |= (Pin_state(GPIO_G2_Pin)? GPIO2_DATA_Bit : 0x00);
+            LED_IN_BitMap |= (Pin_state(GPIO_G3_Pin)? GPIO3_DATA_Bit : 0x00);
+            LED_IN_BitMap |= (Pin_state(GPIO_G14_Pin)? GPIO14_DATA_Bit : 0x00);
+            LED_IN_BitMap |= (Pin_state(GPIO_G15_Pin)? GPIO15_DATA_Bit : 0x00);
+            LED_IN_BitMap |= (Pin_state(Board_QL_Pin)? QL_Pin_DATA_Bit : 0x00);
+            // 数据滤除
+            LED_IN_BitMap &= (uint8_t)((TEMP_LED_STATE_BitMap & LED_DATA_MASK) >> 2);
+            // 数据与&
+            if(LED_IN_BitMap != 0)
+            {
+                LED_IN_BitMap = 1;
+            }
+            if(TEMP_LED_STATE_BitMap & LED_POLARITY_Bit)
+            {
+                LED_IN_BitMap = !LED_IN_BitMap;
+            }
         }
         // OUT
         if(LED_IN_BitMap)
@@ -423,6 +489,86 @@ uint16_t App_ProcessEvent(uint8 task_id, uint16 events)
             tmos_start_task(APP_TaskID, KEY_SHAKE_EVT, 2);
         }
         return (events ^ KEY_SHAKE_EVT);
+    }
+    if(events & GPIO_CONFIG_EVT)
+    {
+        if(SYS_STATE_BITMAP & SYS_GPIO_FREE_MODE_Bit)
+        {
+            GPIOB_ModeCfg(GPIO_Pin_15, GPIO_ModeIN_Floating);   // GPIO0
+            GPIOB_ModeCfg(GPIO_Pin_4, GPIO_ModeIN_Floating);    // GPIO1
+            GPIOB_ModeCfg(GPIO_Pin_13, GPIO_ModeIN_Floating);   // GPIO2
+            GPIOB_ModeCfg(GPIO_Pin_7, GPIO_ModeIN_Floating);    // GPIO3
+            GPIOA_ModeCfg(GPIO_Pin_4, GPIO_ModeIN_Floating);    // GPIO14
+            GPIOA_ModeCfg(GPIO_Pin_4, GPIO_ModeIN_Floating);    // GPIO15
+        }
+        else
+        {
+            QWL_GPIO_Init();
+        }
+        if(SYS_STATE_BITMAP & SYS_SDIO_MODE_EN_Bit)
+        {
+            GPIOB_ModeCfg(GPIO_Pin_13, GPIO_ModeIN_PU);   // GPIO2
+            GPIOA_ModeCfg(GPIO_Pin_4, GPIO_ModeIN_PU);    // GPIO14
+            GPIOA_ModeCfg(GPIO_Pin_4, GPIO_ModeIN_PU);    // GPIO15
+        }
+        else
+        {
+            GPIOB_ModeCfg(GPIO_Pin_13, GPIO_ModeIN_Floating);   // GPIO2
+            GPIOA_ModeCfg(GPIO_Pin_4, GPIO_ModeIN_Floating);    // GPIO14
+            GPIOA_ModeCfg(GPIO_Pin_4, GPIO_ModeIN_Floating);    // GPIO15
+        }
+        if(!((KEY_STATE_BITMAP[SYS_KEY_INDEX] | KEY_STATE_BITMAP[USR_KEY_INDEX]) & DFT_KEY_MODE_Bit))
+        {
+            // KEY输出对象
+            // G0 始终输出
+            // G1
+            if((KEY_STATE_BITMAP[SYS_KEY_INDEX] | KEY_STATE_BITMAP[USR_KEY_INDEX]) & KEY_STATE_to_GPIO1_Bit)
+                GPIOB_ModeCfg(GPIO_G1_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
+            else
+                GPIOB_ModeCfg(GPIO_G1_Pin & chag_to_B, GPIO_ModeIN_PU);
+            // G2
+            if((KEY_STATE_BITMAP[SYS_KEY_INDEX] | KEY_STATE_BITMAP[USR_KEY_INDEX]) & KEY_STATE_to_GPIO2_Bit)
+                GPIOB_ModeCfg(GPIO_G2_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
+            else
+                GPIOB_ModeCfg(GPIO_G2_Pin & chag_to_B, GPIO_ModeIN_PU);
+            // G3 始终输出
+            // // G14
+            // if((KEY_STATE_BITMAP[SYS_KEY_INDEX] | KEY_STATE_BITMAP[USR_KEY_INDEX]) & KEY_STATE_to_GPIO14_Bit)
+            //     GPIOB_ModeCfg(GPIO_G1_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
+            // else
+            //     GPIOB_ModeCfg(GPIO_G1_Pin & chag_to_B, GPIO_ModeIN_PU);
+            // // G15
+            // if((KEY_STATE_BITMAP[SYS_KEY_INDEX] | KEY_STATE_BITMAP[USR_KEY_INDEX]) & KEY_STATE_to_GPIO15_Bit)
+            //     GPIOB_ModeCfg(GPIO_G1_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
+            // else
+            //     GPIOB_ModeCfg(GPIO_G1_Pin & chag_to_B, GPIO_ModeIN_PU);
+            // QL
+            if((KEY_STATE_BITMAP[SYS_KEY_INDEX] | KEY_STATE_BITMAP[USR_KEY_INDEX]) & DFT_LED_MODE_Bit)
+                GPIOA_ModeCfg(Board_QL_Pin, GPIO_ModeOut_PP_5mA);
+            else
+                GPIOA_ModeCfg(Board_QL_Pin, GPIO_ModeIN_PU);
+        }
+        
+        if ((LED_STATE_BITMAP[SYS_KEY_INDEX] | LED_STATE_BITMAP[USR_KEY_INDEX]) & LED_STATE_from_GPIO0_Bit)
+        {
+            // LED输入对象
+            // G0
+            if ((LED_STATE_BITMAP[SYS_KEY_INDEX] | LED_STATE_BITMAP[USR_KEY_INDEX]) & LED_STATE_from_GPIO0_Bit)
+                GPIOB_ModeCfg(GPIO_G0_Pin & chag_to_B, GPIO_ModeIN_Floating);
+            else
+                GPIOB_ModeCfg(GPIO_G0_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
+            // G3
+            if ((LED_STATE_BITMAP[SYS_KEY_INDEX] | LED_STATE_BITMAP[USR_KEY_INDEX]) & LED_STATE_from_GPIO3_Bit)
+                GPIOB_ModeCfg(GPIO_G0_Pin & chag_to_B, GPIO_ModeIN_Floating);
+            else
+                GPIOB_ModeCfg(GPIO_G0_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
+            // QL
+            if((KEY_STATE_BITMAP[SYS_KEY_INDEX] | KEY_STATE_BITMAP[USR_KEY_INDEX]) & LED_STATE_from_QL_Pin_Bit)
+                GPIOA_ModeCfg(Board_QL_Pin, GPIO_ModeIN_Floating);
+            else
+                GPIOA_ModeCfg(Board_QL_Pin, GPIO_ModeOut_PP_5mA);
+        }
+        return (events ^ GPIO_CONFIG_EVT);
     }
 
     return 0;
