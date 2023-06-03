@@ -542,7 +542,7 @@
   
 + 换个思路：GPIO作用选择：考虑GPIO功能间的互斥原理
   
-  + uint8_t GPIO_FUNC[5];
+  + uint8_t GPIO_FUNC[8];GPIO_FUNC[7] = FUNC change
   
   + 0 = default
   
@@ -565,7 +565,7 @@
     |     2 | USR LED | USR LED | USR LED | USR LED | USR LED | USR LED | USR LED |
     |     3 | SYS KEY | SYS KEY | SYS KEY | SYS KEY | SYS KEY | SYS KEY | SYS KEY |
     |     4 | USR KEY | USR KEY | USR KEY | USR KEY | USR KEY | USR KEY | USR KEY |
-    |     5 | USR KEY | RX | USR LED | TX | SDIO | SDIO | DEBUG |
+    |     5 | BOOT | RX | BOOT | TX | SDIO | SDIO | DEBUG |
     |     6 | Release | Release | Release | Release | Release | Release | Release |
   
 + LED STATE[2]重构
