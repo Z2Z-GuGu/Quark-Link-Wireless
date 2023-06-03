@@ -220,12 +220,10 @@ extern volatile uint16_t SYS_STATE_BITMAP;
 // extern volatile uint16_t KEY_STATE_BITMAP[2];
 
 void SYS_Param_Config(uint8_t Param_Inex, uint16_t Param_Bit, uint8_t EN);
-void Set_LED_Blink_Mode(uint8_t _LED_Index, uint8_t _Blink_Mode);
 void All_FIFO_Init(void);
 void APP_task_Init(void);
 void Task_Launcher(void);
 void BOOT_CTRL_LINE_Check(uint8_t COM_CTRL_LINE_STATE);
-void BOOT_State_Init(uint8_t *pBOOT_State);
 void BOOT_Serial_Chack(uint8_t First_bit);
 
 #ifdef __cplusplus

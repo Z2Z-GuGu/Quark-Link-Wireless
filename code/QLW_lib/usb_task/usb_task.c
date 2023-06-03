@@ -246,7 +246,7 @@ __attribute__((aligned(4))) uint8_t USB_TEMP_BUF[MAX_PACKET_SIZE];
 /* USB临时数据处理区域 */
 uint8_t *pUSB_TEMP_BUF;
 uint8_t *pEP1_TEMP_TX_BUF;
-volatile uint8_t BOOT_State = 0x00;
+// volatile uint8_t BOOT_State = 0x00;
 
 /*******************************************************************************
  * @fn      InitCDCDevice
@@ -308,7 +308,7 @@ void InitCDCDevice(void)
   R8_UDEV_CTRL |= RB_UD_PORT_EN;
 
   // 初始化BOOT控制
-  BOOT_State_Init(&BOOT_State);
+  // BOOT_State_Init(&BOOT_State);
 }
 
 // 嗨嗨嗨，先写成这样吧，和UART那边一样，后面可以再优化流程

@@ -15,7 +15,8 @@ app_drv_fifo_t task_list_fifo;
 
 uint8_t APP_TaskID = INVALID_TASK_ID;
 
-uint8_t *APP_BOOT_State;
+// uint8_t BOOT_State;
+volatile uint8_t BOOT_State = 0x00;
 
 // 系统级状态BitMap变量，与Data Flash同步实现掉电保存
 volatile uint16_t SYS_STATE_BITMAP = 0x00;
@@ -116,11 +117,6 @@ void Timer_Task_Stop()
 {
     Timer_Task_ID = 0;
     TMR2_ITCfg(DISABLE, TMR0_3_IT_CYC_END); // 关闭中断
-}
-
-void BOOT_State_Init(uint8_t *pBOOT_State)
-{
-    APP_BOOT_State = pBOOT_State;
 }
 
 // 当引脚功能出现修改时，执行对应设置
@@ -354,10 +350,10 @@ void SYS_STATE_to_SYS_LED(void)
 void BOOT_Execute_GPIO_MODE(void)
 {
     uint8_t G0_FUNC_SAVE, G2_FUNC_SAVE;
-    if(*APP_BOOT_State & Execute_NOW_Bit){
-        switch (*APP_BOOT_State){
+    if(BOOT_State & Execute_NOW_Bit){
+        switch (BOOT_State){
             case ESP32_BOOT_PREPARE:
-                // *APP_BOOT_State = ESP32_BOOT_NOW;
+                // BOOT_State = ESP32_BOOT_NOW;
                 G0_FUNC_SAVE = GPIO_FUNC[0];
                 G2_FUNC_SAVE = GPIO_FUNC[2];
                 GPIO_FUNC[0] = 5;       // BOOT
@@ -369,10 +365,10 @@ void BOOT_Execute_GPIO_MODE(void)
                 // GPIO OUTPUT
                 break;
             case ESP32_BOOT_NOW:
-                // *APP_BOOT_State = ESP32_BOOT_END;
+                // BOOT_State = ESP32_BOOT_END;
                 break;
             case ESP32_BOOT_END:
-                *APP_BOOT_State = IDLE_Mode;
+                BOOT_State = IDLE_Mode;
                 GPIO_FUNC[0] = G0_FUNC_SAVE;
                 GPIO_FUNC[0] = G2_FUNC_SAVE;
                 KEY_MODE[SYS_KEY_INDEX] &= ~KEY_SYS_CTRL_Bit;
@@ -465,26 +461,26 @@ void GPIO_DATA_OUTPUTING(void)
 
     // BOOT
     if (KEY_MODE[SYS_KEY_INDEX] & KEY_SYS_CTRL_Bit){
-        switch(*APP_BOOT_State){
+        switch(BOOT_State){
             case ESP32_BOOT_PREPARE:
                 Pin_Ctrl(BOOT_EN_Pin, GPIO_LOW);
                 Pin_Ctrl(BOOT_G0_Pin, GPIO_LOW);
                 Pin_Ctrl(BOOT_G2_Pin, GPIO_LOW);
-                *APP_BOOT_State = ESP32_BOOT_NOW;
+                BOOT_State = ESP32_BOOT_NOW;
             break;
             case ESP32_BOOT_NOW:
                 Pin_Ctrl(BOOT_EN_Pin, GPIO_HIGH);
-                *APP_BOOT_State = ESP32_BOOT_END;
+                BOOT_State = ESP32_BOOT_END;
             break;
             // case ESP32_BOOT_END:
-            //     *APP_BOOT_State = IDLE_Mode;
+            //     BOOT_State = IDLE_Mode;
             //     break;
             case ESP32_Reset_NOW:
-                *APP_BOOT_State = ESP32_Reset_END;
+                BOOT_State = ESP32_Reset_END;
                 Pin_Ctrl(BOOT_EN_Pin, GPIO_LOW);
                 break;
             case ESP32_Reset_END:
-                *APP_BOOT_State = IDLE_Mode;
+                BOOT_State = IDLE_Mode;
                 Pin_Ctrl(BOOT_EN_Pin, GPIO_HIGH);
                 break;
             
@@ -608,26 +604,26 @@ void BOOT_CTRL_LINE_Check(uint8_t COM_CTRL_LINE_STATE)
     {
       case ESP32_DLD_STATE:
         // 烧录信号，需进一步判断
-        *APP_BOOT_State = ESP32_UART_Check;
+        BOOT_State = ESP32_UART_Check;
         // 500ms内检测不到合适的串口数据则认为情报是假滴，退出UART_Check状态
         // 中断内不能调用tmos 任务调度函数
         Timer_Task_Start(500, Timer_Task_RST_BOOT_State);
         break;
       // case ESP_Tool_CTRL_STATE:
-      //   *APP_BOOT_State = ESP32_UART_Check;
+      //   BOOT_State = ESP32_UART_Check;
       //   break;
       case ESP32_DLDEND_STATE:
         // 烧录完成信号
-        *APP_BOOT_State = ESP32_Reset_NOW;
+        BOOT_State = ESP32_Reset_NOW;
         SYS_STATE_BITMAP &= ~SYS_UART_FLASHING_STATE_Bit;
         break;
       case ESP32_RST_STATE:
         // 串口软件打开信号
-        *APP_BOOT_State = ESP32_Reset_NOW;
+        BOOT_State = ESP32_Reset_NOW;
         break;
     //   case Arduino_DLD_STATE:
     //     // Arduino烧录信号 / 串口打开信号
-    //     *APP_BOOT_State = Arduino_UART_Check;
+    //     BOOT_State = Arduino_UART_Check;
     //     break;
       default:
         break;
@@ -636,36 +632,36 @@ void BOOT_CTRL_LINE_Check(uint8_t COM_CTRL_LINE_STATE)
   else
   {
     // if(!(COM_CTRL_LINE_STATE == ESP_Tool_CTRL_LINE))
-    *APP_BOOT_State = IDLE_Mode;
+    BOOT_State = IDLE_Mode;
   }
 }
 
 void BOOT_Serial_Chack(uint8_t First_bit)
 {
-    if(*APP_BOOT_State == ESP32_UART_Check)
+    if(BOOT_State == ESP32_UART_Check)
     {
         if(R8_USB_RX_LEN == ESP32_BOOT_LEN)
         {
             if(First_bit == ESP32_BOOT_F_Bit) 
             {
-                *APP_BOOT_State = ESP32_BOOT_PREPARE;
+                BOOT_State = ESP32_BOOT_PREPARE;
                 SYS_STATE_BITMAP |= SYS_UART_FLASHING_STATE_Bit;
                 Timer_Task_Stop();
             }
         }
     }
-    // else if(*APP_BOOT_State == Arduino_UART_Check)
+    // else if(BOOT_State == Arduino_UART_Check)
     // {
     //     if(R8_USB_RX_LEN == Arduino_BOOT_LEN)
     //     {
-    //         if(First_bit == Arduino_BOOT_F_Bit) *APP_BOOT_State = Arduino_BOOT_NOW;
+    //         if(First_bit == Arduino_BOOT_F_Bit) BOOT_State = Arduino_BOOT_NOW;
     //     }
     // }
-    // else if(*APP_BOOT_State == SSCOM_UART_Check)
+    // else if(BOOT_State == SSCOM_UART_Check)
     // {
     //     if(R8_USB_RX_LEN == SSCOM_BOOT_LEN)
     //     {
-    //         if(First_bit == SSCOM_BOOT_F_Bit) *APP_BOOT_State = STC_BOOT_NOW;
+    //         if(First_bit == SSCOM_BOOT_F_Bit) BOOT_State = STC_BOOT_NOW;
     //     }
     // }
 }
@@ -683,7 +679,7 @@ void TMR2_IRQHandler(void) // TMR2 定时中断
     switch (Timer_Task_ID)
     {
     case Timer_Task_RST_BOOT_State:
-        *APP_BOOT_State = IDLE_Mode;
+        BOOT_State = IDLE_Mode;
         break;
     
     default:
