@@ -97,5 +97,6 @@ GPIOStateTpDef Pin_state(uint32_t Pin);
 void QWL_GPIO_Init(void);
 void DEBUG_PIN(uint32_t Pin, GPIOStateTpDef State);
 void IRQ_Prioritty_Setting(void);
+void BB_IO_MODE_SETTING(uint32_t pin, GPIOModeTypeDef mode);
 
 #endif // __BOARD_BASE_H__

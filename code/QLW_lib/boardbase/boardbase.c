@@ -154,6 +154,18 @@ void IRQ_Prioritty_Setting(void)
     PFIC_SetPriority(TMR3_IRQn, (TMR3_Priority << 4));
 }
 
+void BB_IO_MODE_SETTING(uint32_t pin, GPIOModeTypeDef mode)
+{
+    if(pin & GPIO_Port_B)
+    {   // GPIO B
+        GPIOA_ModeCfg(pin & chag_to_B, mode);
+    }
+    else
+    {   // GPIO A
+        GPIOA_ModeCfg(pin, mode);
+    }
+}
+
 /* test code
 QWL_GPIO_Init();
 

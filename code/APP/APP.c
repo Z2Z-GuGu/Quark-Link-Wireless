@@ -21,9 +21,14 @@ uint8_t *APP_BOOT_State;
 volatile uint16_t SYS_STATE_BITMAP = 0x00;
 // volatile uint16_t SYS_GPIO_BITMAP = 0x00;
 // KEY & LED 状态变量
-volatile uint8_t LED_Bink_Mode[2] = {0};
-volatile uint16_t LED_STATE_BITMAP[2] = {0};
-volatile uint16_t KEY_STATE_BITMAP[2] = {0};
+// volatile uint8_t LED_Bink_Mode[2] = {0};
+// volatile uint16_t LED_STATE_BITMAP[2] = {0};
+// volatile uint16_t KEY_STATE_BITMAP[2] = {0};
+volatile uint8_t GPIO_FUNC[8] = {0};
+// volatile uint8_t LED_STATE_BitMap[2] = {0};
+volatile uint8_t LED_MODE[2] = {0};
+volatile uint8_t KEY_MODE[2] = {0};
+const uint32_t GPIO_Index[GPIO_INDEX_MAX] = {GPIO_G0_Pin, GPIO_G1_Pin, GPIO_G2_Pin, GPIO_G3_Pin, GPIO_G14_Pin, GPIO_G15_Pin, Board_QL_Pin};
 
 void TIM2_Init()
 {
@@ -118,239 +123,415 @@ void BOOT_State_Init(uint8_t *pBOOT_State)
     APP_BOOT_State = pBOOT_State;
 }
 
-GPIOStateTpDef KEY_EVENT_to_GPIOState(uint8_t KEY_EVENT)
+// 当引脚功能出现修改时，执行对应设置
+void GPIO_Mode_SETTING(void)
 {
-    if(KEY_EVENT == KEY_FALLING_EVENT)
-        return GPIO_LOW;
-    if(KEY_EVENT == KEY_RISING_EVENT)
-        return GPIO_HIGH;
-    return GPIO_INVER;
+    if(GPIO_FUNC[7] != 0){
+        if(GPIO_FUNC[7] & 0x01){
+            // GPIO0
+            if(GPIO_FUNC[0] == 0 || GPIO_FUNC[0] == 3 || GPIO_FUNC[0] == 4 || GPIO_FUNC[0] == 5){    // 5 = BOOT
+                Pin_Ctrl(GPIO_G0_Pin, GPIO_HIGH);
+                BB_IO_MODE_SETTING(GPIO_G0_Pin, GPIO_ModeOut_PP_5mA);
+            }else{   // LED or R
+                BB_IO_MODE_SETTING(GPIO_G0_Pin, GPIO_ModeIN_Floating);
+            }
+        }
+        if(GPIO_FUNC[7] & 0x02){
+            // GPIO1
+            if(GPIO_FUNC[1] == 0 || GPIO_FUNC[1] == 5){
+                // RX
+                UART0_INTCfg(ENABLE, RB_IER_RECV_RDY | RB_IER_LINE_STAT);
+                BB_IO_MODE_SETTING(GPIO_G1_Pin, GPIO_ModeIN_PU);
+            }else if(GPIO_FUNC[1] == 3 || GPIO_FUNC[1] == 4){   // KEY
+                UART0_INTCfg(DISABLE, RB_IER_RECV_RDY | RB_IER_LINE_STAT);
+                Pin_Ctrl(GPIO_G1_Pin, GPIO_HIGH);
+                BB_IO_MODE_SETTING(GPIO_G1_Pin, GPIO_ModeOut_PP_5mA);
+            }else{   // LED or R
+                UART0_INTCfg(DISABLE, RB_IER_RECV_RDY | RB_IER_LINE_STAT);
+                BB_IO_MODE_SETTING(GPIO_G1_Pin, GPIO_ModeIN_Floating);
+            }
+        }
+        if(GPIO_FUNC[7] & 0x04){
+            // GPIO2
+            if(GPIO_FUNC[2] == 3 || GPIO_FUNC[2] == 4 || GPIO_FUNC[2] == 5){    // 5 = BOOT
+                Pin_Ctrl(GPIO_G2_Pin, GPIO_HIGH);
+                BB_IO_MODE_SETTING(GPIO_G2_Pin, GPIO_ModeOut_PP_5mA);
+            }else{   // LED or R
+                BB_IO_MODE_SETTING(GPIO_G2_Pin, GPIO_ModeIN_Floating);
+            }
+        }
+        if(GPIO_FUNC[7] & 0x08){
+            // GPIO3
+            if(GPIO_FUNC[3] == 0 || GPIO_FUNC[3] == 5){
+                R8_UART0_IER |= RB_IER_TXD_EN;
+                BB_IO_MODE_SETTING(GPIO_G3_Pin, GPIO_ModeOut_PP_5mA);
+            }if(GPIO_FUNC[3] == 3 || GPIO_FUNC[3] == 4){    // KEY
+                R8_UART0_IER &= ~RB_IER_TXD_EN;
+                Pin_Ctrl(GPIO_G3_Pin, GPIO_HIGH);
+                BB_IO_MODE_SETTING(GPIO_G3_Pin, GPIO_ModeOut_PP_5mA);
+            }else{   // LED or R
+                R8_UART0_IER &= ~RB_IER_TXD_EN;
+                BB_IO_MODE_SETTING(GPIO_G3_Pin, GPIO_ModeIN_Floating);
+            }
+        }
+        if(GPIO_FUNC[7] & 0x10){
+            // GPIO14
+            if(GPIO_FUNC[4] == 5){    // SDIO
+                BB_IO_MODE_SETTING(GPIO_G14_Pin, GPIO_ModeIN_PU);
+            }else if(GPIO_FUNC[4] == 3 || GPIO_FUNC[4] == 4){    // KEY
+                Pin_Ctrl(GPIO_G14_Pin, GPIO_HIGH);
+                BB_IO_MODE_SETTING(GPIO_G14_Pin, GPIO_ModeOut_PP_5mA);
+            }else{   // LED or R
+                BB_IO_MODE_SETTING(GPIO_G14_Pin, GPIO_ModeIN_Floating);
+            }
+        }
+        if(GPIO_FUNC[7] & 0x20){
+            // GPIO15
+            if(GPIO_FUNC[5] == 5){    // SDIO
+                BB_IO_MODE_SETTING(GPIO_G15_Pin, GPIO_ModeIN_PU);
+            }else if(GPIO_FUNC[5] == 3 || GPIO_FUNC[5] == 4){    // KEY
+                Pin_Ctrl(GPIO_G15_Pin, GPIO_HIGH);
+                BB_IO_MODE_SETTING(GPIO_G15_Pin, GPIO_ModeOut_PP_5mA);
+            }else{   // LED or R
+                BB_IO_MODE_SETTING(GPIO_G15_Pin, GPIO_ModeIN_Floating);
+            }
+        }
+        if(GPIO_FUNC[7] & 0x40){
+            // QL Pin
+            if(GPIO_FUNC[6] == 0 || GPIO_FUNC[6] == 5){    // DEBUG
+                BB_IO_MODE_SETTING(Board_QL_Pin, GPIO_ModeOut_PP_5mA);
+            }else if(GPIO_FUNC[6] == 3 || GPIO_FUNC[6] == 4){    // KEY
+                Pin_Ctrl(Board_QL_Pin, GPIO_HIGH);
+                BB_IO_MODE_SETTING(Board_QL_Pin, GPIO_ModeOut_PP_5mA);
+            }else{   // LED or R
+                BB_IO_MODE_SETTING(Board_QL_Pin, GPIO_ModeIN_Floating);
+            }
+        }
+    }
 }
 
-void Set_LED_Blink_Mode(uint8_t _LED_Index, uint8_t _Blink_Mode)
+// 忠实记录相关GPIO的状态，处理为LED状态后记录到LED_MODE中
+void GPIO_GETTING(void)
 {
-    LED_Bink_Mode[_LED_Index] = _Blink_Mode;
-}
-
-void LED_Ctrl(uint8_t LED_Index, uint8_t Ctrl_Mode)
-{
-    GPIOStateTpDef TEMP_LED_Ctrl;
-    static uint8_t event_count[2] = {0};
-    static uint8_t blink_count[2] = {0};
-    uint8_t TEMP_LED_Mode = LED_Bink_Mode[LED_Index];
-    // Counter
-    event_count[LED_Index]++;
-    if(event_count[LED_Index] >= 40)    // 500ms
-        event_count[LED_Index] = 0;
-
-    // Mode
-    switch(TEMP_LED_Mode)
-    {
-        case LED_not_Blink_MODE:
-            TEMP_LED_Ctrl = GPIO_HIGH;
-            break;
-        case LED_Blink_05tps_MODE:
-            if(event_count[LED_Index] % 8 == 0)
-                TEMP_LED_Ctrl = GPIO_INVER;
-            break;
-        case LED_Blink_10tps_MODE:
-            if(event_count[LED_Index] % 4 == 0)
-                TEMP_LED_Ctrl = GPIO_INVER;
-            break;
-        case LED_Blink_2t_MODE:
-            if(event_count[LED_Index] % 16 == 0)
+    // 输出到 LED_MODE 还要再验证一遍
+    if((!(LED_MODE[SYS_LED_INDEX] & LED_COM_CTRL_Bit)) || (!(LED_MODE[USR_LED_INDEX] & LED_COM_CTRL_Bit))){
+        GPIOStateTpDef TEMP_H[2];
+        uint8_t i;
+        uint8_t TEMP_LED_INDEX = 0xFF;
+        // INVER
+        if(LED_MODE[SYS_LED_INDEX] & LED_INVER_CTRL_Bit){
+            TEMP_H[SYS_LED_INDEX] = GPIO_LOW;
+        }else{
+            TEMP_H[SYS_LED_INDEX] = GPIO_HIGH;
+        }
+        if(LED_MODE[USR_LED_INDEX] & LED_INVER_CTRL_Bit){
+            TEMP_H[USR_LED_INDEX] = GPIO_LOW;
+        }else{
+            TEMP_H[USR_LED_INDEX] = GPIO_HIGH;
+        }
+        // GPIO0 - QL
+        for (i = 0; i < GPIO_INDEX_MAX; i++){
+            if (GPIO_FUNC[i] == 1)
             {
-                TEMP_LED_Ctrl = GPIO_INVER;
-                blink_count[LED_Index]++;
-                if(blink_count[LED_Index] >= 4)
-                {
-                    blink_count[LED_Index] = 0;
-                    if(LED_Index == SYS_LED_INDEX)
-                        LED_Bink_Mode[LED_Index] = LED_not_Blink_MODE;
-                    else
-                        LED_Bink_Mode[LED_Index] = LED_OFF_MODE;
+                TEMP_LED_INDEX = SYS_LED_INDEX;
+            }else if(GPIO_FUNC[i] == 2){
+                TEMP_LED_INDEX = USR_LED_INDEX;
+            }
+            // 若该LED由UART控制则不允许接受输入
+            if(LED_MODE[TEMP_LED_INDEX] & LED_COM_CTRL_Bit){
+                TEMP_LED_INDEX = 0xFF;
+            }
+            if(TEMP_LED_INDEX != 0xFF){
+                if(Pin_state(GPIO_Index[i]) == TEMP_H){
+                    LED_MODE[TEMP_LED_INDEX] |= LED_ON_OFF_Bit;
+                }else{
+                    LED_MODE[TEMP_LED_INDEX] &= ~LED_ON_OFF_Bit;
+                }
+                // 复位
+                TEMP_LED_INDEX = 0xFF;
+            }
+        }
+        // GPIO2 Default（不受INVER位影响）
+        if(LED_MODE[USR_LED_INDEX] & LED_COM_CTRL_Bit){
+            if(GPIO_FUNC[2] == 0){
+                if(Pin_state(GPIO_G2_Pin) == GPIO_HIGH){
+                    LED_MODE[USR_LED_INDEX] |= LED_ON_OFF_Bit;
+                }else{
+                    LED_MODE[USR_LED_INDEX] &= ~LED_ON_OFF_Bit;
                 }
             }
-            break;
-        default:
-            TEMP_LED_Ctrl = GPIO_LOW;
-        break;
-    }
-
-    // OUTPUT
-    if(LED_Index == SYS_LED_INDEX)
-    {
-        Pin_Ctrl(Sys_LED_Pin, TEMP_LED_Ctrl);
-    }
-    else
-    {
-        Pin_Ctrl(User_LED_Pin, TEMP_LED_Ctrl);
+        }
     }
 }
 
-void LED_Handle(uint8_t LED_Index)
+// 忠实记录两个KEY的状态到KEY_MODE中
+void KEY_STATE_GETTING(void)
 {
-    uint16_t TEMP_LED_STATE_BitMap = LED_STATE_BITMAP[LED_Index];
-    uint8_t LED_IN_BitMap = 0x01;
-    if(TEMP_LED_STATE_BitMap & DFT_LED_MODE_Bit)
-    {   // 自定功能
-        // UART, BLE, USB控制具有最高优先权
-        if(LED_STATE_BITMAP[LED_Index] & LED_STATE_from_UART_Bit)
-        {
-            if(LED_STATE_BITMAP[LED_Index] & LED_STATE_UART_CTRL_Bit)
-            {
-                LED_Bink_Mode[LED_Index] |= LED_MODE_EN_Bit;
-            }
-            else
-            {
-                LED_Bink_Mode[LED_Index] &= ~LED_MODE_EN_Bit;
-            }
+    static GPIOStateTpDef KEY_old_val[2] = {GPIO_HIGH, GPIO_HIGH};
+    static uint8_t SYS_KEY_DOWN_Time_Count = 0;
+    GPIOStateTpDef KEY_val[2];
+    // SYS KEY
+    KEY_val[SYS_KEY_INDEX] = Pin_state(Sys_KEY_Pin);
+    if(KEY_val[SYS_KEY_INDEX] != KEY_old_val[SYS_KEY_INDEX]){
+        KEY_MODE[SYS_KEY_INDEX] |= KEY_NEW_DATA_Bit;
+        if(KEY_val[SYS_KEY_INDEX] == GPIO_LOW){
+            SYS_KEY_DOWN_Time_Count++;
+            KEY_MODE[SYS_KEY_INDEX] |= KEY_UP_DOWN_Bit;
+        }else{
+            SYS_KEY_DOWN_Time_Count = 0;
+            KEY_MODE[SYS_KEY_INDEX] &= ~KEY_UP_DOWN_Bit;
         }
-        else
-        {
-            // 原数据获取
-            LED_IN_BitMap |= (Pin_state(GPIO_G0_Pin)? GPIO0_DATA_Bit : 0x00);
-            LED_IN_BitMap |= (Pin_state(GPIO_G1_Pin)? GPIO1_DATA_Bit : 0x00);
-            LED_IN_BitMap |= (Pin_state(GPIO_G2_Pin)? GPIO2_DATA_Bit : 0x00);
-            LED_IN_BitMap |= (Pin_state(GPIO_G3_Pin)? GPIO3_DATA_Bit : 0x00);
-            LED_IN_BitMap |= (Pin_state(GPIO_G14_Pin)? GPIO14_DATA_Bit : 0x00);
-            LED_IN_BitMap |= (Pin_state(GPIO_G15_Pin)? GPIO15_DATA_Bit : 0x00);
-            LED_IN_BitMap |= (Pin_state(Board_QL_Pin)? QL_Pin_DATA_Bit : 0x00);
-            // 数据滤除
-            LED_IN_BitMap &= (uint8_t)((TEMP_LED_STATE_BitMap & LED_DATA_MASK) >> 2);
-            // 数据与&
-            if(LED_IN_BitMap != 0)
-            {
-                LED_IN_BitMap = 1;
-            }
-            if(TEMP_LED_STATE_BitMap & LED_POLARITY_Bit)
-            {
-                LED_IN_BitMap = !LED_IN_BitMap;
-            }
+        KEY_old_val[SYS_KEY_INDEX] = KEY_val[SYS_KEY_INDEX];
+    }
+    // USR KEY
+    KEY_val[USR_KEY_INDEX] = Pin_state(User_KEY_Pin);
+    if(KEY_val[USR_KEY_INDEX] != KEY_old_val[USR_KEY_INDEX]){
+        KEY_MODE[USR_KEY_INDEX] |= KEY_NEW_DATA_Bit;
+        if(KEY_val[USR_KEY_INDEX] == GPIO_LOW){
+            KEY_MODE[USR_KEY_INDEX] |= KEY_UP_DOWN_Bit;
+        }else{
+            KEY_MODE[USR_KEY_INDEX] &= ~KEY_UP_DOWN_Bit;
         }
-        // OUT
-        if(LED_IN_BitMap)
-        {
-            LED_Bink_Mode[LED_Index] |= LED_MODE_EN_Bit;
+        KEY_old_val[USR_KEY_INDEX] = KEY_val[USR_KEY_INDEX];
+    }
+    // SYS LONG TIME PRESS
+    if(SYS_KEY_DOWN_Time_Count >= 250){  // 5s
+        SYS_KEY_DOWN_Time_Count = 0;
+    }
+}
+
+// 默认情况下SYS LED动作指导函数
+void SYS_STATE_to_SYS_LED(void)
+{
+    if(LED_MODE[SYS_LED_INDEX] & LED_COM_CTRL_Bit){
+        return;
+    } else if ((GPIO_FUNC[0] == 1) || (GPIO_FUNC[1] == 1) || \
+               (GPIO_FUNC[2] == 1) || (GPIO_FUNC[3] == 1) || \
+               (GPIO_FUNC[4] == 1) || (GPIO_FUNC[5] == 1) || (GPIO_FUNC[6] == 1)){
+        return;
+    }
+    //  确保SYS LED处于Default状态（不被UART控制，不被GPIO控制）
+    if(SYS_STATE_BITMAP & SYS_RUNNING_BREAK_STATE_Bit){  
+        // 系统故障
+        LED_MODE[SYS_LED_INDEX] &= ~LED_ON_OFF_Bit;     // 常灭
+    } else {   // 系统正常运行
+        // SYS KEY
+        if((KEY_MODE[SYS_KEY_INDEX] & KEY_UP_DOWN_Bit) || (KEY_MODE[SYS_KEY_INDEX] & KEY_SOFT_UP_DOWN_Bit)){
+            LED_MODE[SYS_LED_INDEX] &= ~LED_ON_OFF_Bit;         // 按下SYS按键：LED熄灭，ESP32 EN = 0
+            // Pin_Ctrl(BOOT_EN_Pin, GPIO_LOW);
+        } else {
+            LED_MODE[SYS_LED_INDEX] |= LED_ON_OFF_Bit;
+            // Pin_Ctrl(BOOT_EN_Pin, GPIO_LOW);
         }
-        else
-        {
-            LED_Bink_Mode[LED_Index] &= ~LED_MODE_EN_Bit;
+        // CONNECT STATE
+        if(SYS_STATE_BITMAP & SYS_USB_NEW_STATE_Bit) {
+            // USB 连接/断开：闪两次
+            SYS_STATE_BITMAP &= ~SYS_USB_NEW_STATE_Bit;
+            LED_MODE[SYS_LED_INDEX] |= LED_BLINK_EN_Bit;
+            LED_MODE[SYS_LED_INDEX] |= LED_BLINK_Times_Bit;     
+        }
+        if(SYS_STATE_BITMAP & SYS_BLE_NEW_STATE_Bit) {
+            // BLE 连接/断开：闪两次
+            SYS_STATE_BITMAP &= ~SYS_BLE_NEW_STATE_Bit;
+            LED_MODE[SYS_LED_INDEX] |= LED_BLINK_EN_Bit;
+            LED_MODE[SYS_LED_INDEX] |= LED_BLINK_Times_Bit;     
+        }
+        // UART ACTION
+        if(SYS_STATE_BITMAP & SYS_UART_FLASHING_STATE_Bit){
+            // 烧录中：每秒闪5次
+            LED_MODE[SYS_LED_INDEX] |= LED_BLINK_EN_Bit;
+            LED_MODE[SYS_LED_INDEX] &= ~LED_BLINK_Times_Bit;
+        }
+        if((SYS_STATE_BITMAP & SYS_UART_TX_ACTION_Bit) || (SYS_STATE_BITMAP & SYS_UART_RX_ACTION_Bit)){
+            // UART ACTION：每秒闪5次
+            LED_MODE[SYS_LED_INDEX] |= LED_BLINK_EN_Bit;
+            LED_MODE[SYS_LED_INDEX] &= ~LED_BLINK_Times_Bit;
         }
     }
-    else
-    {   // 默认功能
+}
+
+// BOOT 执行
+void BOOT_Execute_GPIO_MODE(void)
+{
+    uint8_t G0_FUNC_SAVE, G2_FUNC_SAVE;
+    if(*APP_BOOT_State & Execute_NOW_Bit){
+        switch (*APP_BOOT_State){
+            case ESP32_BOOT_PREPARE:
+                // *APP_BOOT_State = ESP32_BOOT_NOW;
+                G0_FUNC_SAVE = GPIO_FUNC[0];
+                G2_FUNC_SAVE = GPIO_FUNC[2];
+                GPIO_FUNC[0] = 5;       // BOOT
+                GPIO_FUNC[2] = 5;       // BOOT
+                KEY_MODE[SYS_KEY_INDEX] |= KEY_SYS_CTRL_Bit;
+                KEY_MODE[USR_KEY_INDEX] |= KEY_SYS_CTRL_Bit;
+                LED_MODE[SYS_LED_INDEX] |= LED_SYS_CTRL_Bit;
+                LED_MODE[USR_LED_INDEX] |= LED_SYS_CTRL_Bit;
+                // GPIO OUTPUT
+                break;
+            case ESP32_BOOT_NOW:
+                // *APP_BOOT_State = ESP32_BOOT_END;
+                break;
+            case ESP32_BOOT_END:
+                *APP_BOOT_State = IDLE_Mode;
+                GPIO_FUNC[0] = G0_FUNC_SAVE;
+                GPIO_FUNC[0] = G2_FUNC_SAVE;
+                KEY_MODE[SYS_KEY_INDEX] &= ~KEY_SYS_CTRL_Bit;
+                KEY_MODE[USR_KEY_INDEX] &= ~KEY_SYS_CTRL_Bit;
+                LED_MODE[SYS_LED_INDEX] &= ~LED_SYS_CTRL_Bit;
+                LED_MODE[USR_LED_INDEX] &= ~LED_SYS_CTRL_Bit;
+                break;
         
-        switch(LED_Index)
-        {
-            case SYS_LED_INDEX:
-                if(SYS_STATE_BITMAP & SYS_RUNNING_BREAK_STATE_Bit)
-                {   // 系统故障
-                    LED_Bink_Mode[SYS_LED_INDEX] = LED_OFF_MODE;     // 常灭
-                }
-                else
-                {   // 系统正常运行
-                    LED_Bink_Mode[SYS_LED_INDEX] = LED_not_Blink_MODE;      // 常亮
-                    if(SYS_STATE_BITMAP & SYS_USB_NEW_STATE_Bit)
-                    {
-                        SYS_STATE_BITMAP &= ~SYS_USB_NEW_STATE_Bit;
-                        LED_Bink_Mode[SYS_LED_INDEX] = LED_Blink_2t_MODE;     // USB 连接/断开：闪两次
-                    }
-                    else if(SYS_STATE_BITMAP & SYS_BLE_NEW_STATE_Bit)
-                    {
-                        SYS_STATE_BITMAP &= ~SYS_BLE_NEW_STATE_Bit;
-                        LED_Bink_Mode[SYS_LED_INDEX] = LED_Blink_2t_MODE;     // BLE 连接/断开：闪两次
-                    }
-                    else if(SYS_STATE_BITMAP & SYS_UART_FLASHING_STATE_Bit)
-                        LED_Bink_Mode[SYS_LED_INDEX] = LED_Blink_05tps_MODE;   // 烧录中：每秒闪5次
-                    else if((SYS_STATE_BITMAP & SYS_UART_TX_ACTION_Bit) || (SYS_STATE_BITMAP & SYS_UART_RX_ACTION_Bit))
-                        LED_Bink_Mode[SYS_LED_INDEX] = LED_Blink_10tps_MODE;   // UART ACTION：每秒闪10次
-                    else if(SYS_STATE_BITMAP & SYS_KEY_ACTION_Bit)
-                        LED_Bink_Mode[SYS_LED_INDEX] = LED_OFF_MODE;     // 按下SYS按键：LED熄灭，ESP32 EN = 0
-                }
-                break;
-            case USR_LED_INDEX:
-                if(Pin_state(GPIO_G2_Pin))
-                {
-                    LED_Bink_Mode[USR_LED_INDEX] = LED_not_Blink_MODE;
-                }
-                else
-                {
-                    LED_Bink_Mode[USR_LED_INDEX] = LED_OFF_MODE;
-                }
-                break;
             default:
                 break;
         }
     }
 }
 
-void KEY_Handle(uint8_t KEY_Index, uint8_t KEY_Event)
+// 对ESP32输出KEY信号（非SYS强制状态下执行）/BOOT信号（SYS强制BOOT状态下执行）
+void GPIO_DATA_OUTPUTING(void)
 {
-    uint16_t TEMP_KEY_STATE_BitMap = KEY_STATE_BITMAP[KEY_Index];
-    uint8_t KEY_OUT = KEY_Event;
-    if(TEMP_KEY_STATE_BitMap & DFT_KEY_MODE_Bit)
-    {   // 自定功能
-        // 模式处理
-        if(TEMP_KEY_STATE_BitMap & KEY_POLARITY_Bit)
-            KEY_OUT = ~KEY_Event;
-        else
-            KEY_OUT = KEY_Event;
-        if(TEMP_KEY_STATE_BitMap & KEY_LOCK_Bit)
-        {
-            if(KEY_Event == KEY_FALLING_EVENT)
-            {
-                KEY_OUT = KEY_INVER_EVENT;
-            }
-            else
-            {
-                return;
-            }
-        }
-        if(TEMP_KEY_STATE_BitMap & KEY_SHAKE_Bit)
-        {   // 开延时task
-            tmos_set_event(APP_TaskID, KEY_SHAKE_EVT);
-        }
+    uint8_t i, j;
+    GPIOStateTpDef TEMP_IN_STATE, TEMP_OUT_STATE;
+    uint8_t SYS_KEY_EN = 1;
+    for (i = 0; i < 2; i++){
+        // i = 0: SYS; i = 1: USR;
+        if (!(KEY_MODE[i] & KEY_SYS_CTRL_Bit)){
+            // 执行系统高优先级任务时，如BOOT，暂停输出KEY信号
+            if (KEY_MODE[i] & KEY_NEW_DATA_Bit){
+            // 仅对跳边沿信号处理
+                KEY_MODE[i] &= ~KEY_NEW_DATA_Bit;   // 复位
+                if ((KEY_MODE[i] & KEY_UP_DOWN_Bit) || (KEY_MODE[i] & KEY_SOFT_UP_DOWN_Bit)){
+                    // HW PRESS OR SW PRESS
+                    TEMP_IN_STATE = GPIO_HIGH;
+                } else {
+                    TEMP_IN_STATE = GPIO_LOW;
+                }
+                // 向UART输出
+                if (KEY_MODE[i] & KEY_UART_OUT_EN_Bit){
+                    // OUTPUT to UART
+                    if(i == 0){
+                        // SYS KEY 有作用
+                        SYS_KEY_EN = 0;
+                    }
+                }
+                // 反转输出
+                if (KEY_MODE[i] & KEY_INVER_OUT_Bit){
+                    if (TEMP_IN_STATE == GPIO_LOW){
+                        TEMP_OUT_STATE = GPIO_HIGH;
+                    } else if (TEMP_IN_STATE == GPIO_HIGH){
+                        TEMP_OUT_STATE = GPIO_LOW;
+                    } else {
+                        // 自锁优先级高于反转优先级
+                        // TEMP_OUT_STATE = GPIO_INVER;    // LOCK
+                    }
+                }
+                // 按键自锁 自锁优先级高于反转优先级
+                if (KEY_MODE[i] & KEY_LOCK_EN_Bit){
+                    if (TEMP_IN_STATE == GPIO_LOW){
+                        TEMP_OUT_STATE = GPIO_INVER;
+                    }
+                }
+                // 输出抖动
+                if (KEY_MODE[i] & KEY_STATE_EN_Bit){
+                }
 
-        // OUTPUT
-        if(TEMP_KEY_STATE_BitMap & KEY_STATE_to_GPIO0_Bit)
-            Pin_Ctrl(GPIO_G0_Pin, KEY_EVENT_to_GPIOState(KEY_OUT));
-        if(TEMP_KEY_STATE_BitMap & KEY_STATE_to_GPIO1_Bit)
-            Pin_Ctrl(GPIO_G1_Pin, KEY_EVENT_to_GPIOState(KEY_OUT));
-        if(TEMP_KEY_STATE_BitMap & KEY_STATE_to_GPIO2_Bit)
-            Pin_Ctrl(GPIO_G2_Pin, KEY_EVENT_to_GPIOState(KEY_OUT));
-        if(TEMP_KEY_STATE_BitMap & KEY_STATE_to_GPIO3_Bit)
-            Pin_Ctrl(GPIO_G3_Pin, KEY_EVENT_to_GPIOState(KEY_OUT));
-        if(TEMP_KEY_STATE_BitMap & KEY_STATE_to_GPIO14_Bit)
-            Pin_Ctrl(GPIO_G14_Pin, KEY_EVENT_to_GPIOState(KEY_OUT));
-        if(TEMP_KEY_STATE_BitMap & KEY_STATE_to_GPIO15_Bit)
-            Pin_Ctrl(GPIO_G15_Pin, KEY_EVENT_to_GPIOState(KEY_OUT));
-        if(TEMP_KEY_STATE_BitMap & KEY_STATE_to_QL_Pin_Bit)
-            Pin_Ctrl(Board_QL_Pin, KEY_EVENT_to_GPIOState(KEY_OUT));
+                // OUT to GPIO
+                for (j = 0; j < GPIO_INDEX_MAX; j++){
+                    if (GPIO_FUNC[j] == (i + 3)){
+                        Pin_Ctrl(GPIO_Index[j], TEMP_OUT_STATE);
+                        if(i == 0){
+                            // SYS KEY 有作用
+                            SYS_KEY_EN = 0;
+                        }
+                    }
+                }
+                // SYS KEY Default to EN
+                if(i == 0){
+                    if(SYS_KEY_EN){
+                        // SYS KEY 未用做任何用途
+                        Pin_Ctrl(BOOT_EN_Pin, TEMP_IN_STATE);
+                    }
+                }
+                // USER KEY Default to GPIO0 
+                if(i == 1){
+                    // USR KEY
+                    if((GPIO_FUNC[0] == 0)){        // == 5 BOOT
+                        Pin_Ctrl(GPIO_Index[0], TEMP_IN_STATE);
+                    }
+                }
+            }
+        }
     }
-    else
-    {   // 默认功能
-        // if(KEY_Index == SYS_KEY_INDEX)
-        switch(KEY_Index)
-        {
-            case SYS_KEY_INDEX:
-                if(KEY_OUT == KEY_FALLING_EVENT)
-                {
-                    Pin_Ctrl(BOOT_EN_Pin, GPIO_LOW);
-                    SYS_STATE_BITMAP |= SYS_KEY_ACTION_Bit;
-                }
-                else
-                {
-                    Pin_Ctrl(BOOT_EN_Pin, GPIO_HIGH);
-                    SYS_STATE_BITMAP &= ~SYS_KEY_ACTION_Bit;
-                }
+
+    // BOOT
+    if (KEY_MODE[SYS_KEY_INDEX] & KEY_SYS_CTRL_Bit){
+        switch(*APP_BOOT_State){
+            case ESP32_BOOT_PREPARE:
+                Pin_Ctrl(BOOT_EN_Pin, GPIO_LOW);
+                Pin_Ctrl(BOOT_G0_Pin, GPIO_LOW);
+                Pin_Ctrl(BOOT_G2_Pin, GPIO_LOW);
+                *APP_BOOT_State = ESP32_BOOT_NOW;
+            break;
+            case ESP32_BOOT_NOW:
+                Pin_Ctrl(BOOT_EN_Pin, GPIO_HIGH);
+                *APP_BOOT_State = ESP32_BOOT_END;
+            break;
+            // case ESP32_BOOT_END:
+            //     *APP_BOOT_State = IDLE_Mode;
+            //     break;
+            case ESP32_Reset_NOW:
+                *APP_BOOT_State = ESP32_Reset_END;
+                Pin_Ctrl(BOOT_EN_Pin, GPIO_LOW);
                 break;
-            case USR_KEY_INDEX:
-                Pin_Ctrl(GPIO_G0_Pin, KEY_EVENT_to_GPIOState(KEY_OUT));
+            case ESP32_Reset_END:
+                *APP_BOOT_State = IDLE_Mode;
+                Pin_Ctrl(BOOT_EN_Pin, GPIO_HIGH);
                 break;
+            
             default:
                 break;
         }
+    }
+}
+
+// 忠实的反应LED_MODE
+void LED_OUTPUTING(void)
+{
+    static uint8_t LED_OUTPUT_Count[2] = {0};
+    static uint8_t LED_BLINK_Count[2] = {0};
+    GPIOStateTpDef TEMP_OUT_STATE;
+    uint8_t i;
+    for (i = 0; i < 2; i++){
+        if (LED_MODE[i] & LED_BLINK_EN_Bit)
+        {
+            LED_OUTPUT_Count++;
+            if (LED_OUTPUT_Count >= 5)
+            { // 100ms
+                TEMP_OUT_STATE = GPIO_INVER;
+            }
+        }
+        if (LED_MODE[i] & LED_BLINK_Times_Bit){
+            LED_BLINK_Count++;
+            if(LED_BLINK_Count >= 4){   // 2次后自动关闭
+                LED_MODE[i] &= ~LED_BLINK_EN_Bit;
+                LED_MODE[i] &= ~LED_BLINK_Times_Bit;
+            }
+        }
+        // 最高优先级：LED使能
+        if (!(LED_MODE[i] & LED_ON_OFF_Bit)){
+            TEMP_OUT_STATE = GPIO_LOW
+        } else if (TEMP_OUT_STATE != GPIO_INVER) {
+            TEMP_OUT_STATE = GPIO_HIGH;
+        }
+    }
+        
+    // OUTPUT
+    if(i == 0){
+        // SYS LED
+        Pin_Ctrl(Sys_LED_Pin, TEMP_OUT_STATE);
+    }else if(i == 1){
+        // USER LED
+        Pin_Ctrl(User_LED_Pin, TEMP_OUT_STATE);
     }
 }
 
@@ -361,216 +542,21 @@ uint16_t App_ProcessEvent(uint8 task_id, uint16 events)
         DEBUG_PIN(A10_Pin, GPIO_INVER);
         return (events ^ APP_Test_EVT);
     }
-    if(events & ESP_Start_From_SPI)
+    if(events & GPIO_PROCESS_EVT)
     {
-        GPIOB_SetBits(BOOT_G0_Pin & chag_to_B);
-        GPIOB_SetBits(BOOT_G2_Pin & chag_to_B);
-        GPIOB_ResetBits(BOOT_EN_Pin & chag_to_B);
-        GPIOB_ModeCfg(BOOT_G0_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
-        GPIOB_ModeCfg(BOOT_G2_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
-        GPIOB_ModeCfg(BOOT_EN_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
-        return (events ^ ESP_Start_From_SPI);
-    }
-    if(events & ESP_BOOT)
-    {
-        GPIOB_ResetBits(BOOT_G0_Pin & chag_to_B);
-        GPIOB_ResetBits(BOOT_G2_Pin & chag_to_B);
-        GPIOB_ResetBits(BOOT_EN_Pin & chag_to_B);
-        GPIOB_ModeCfg(BOOT_G0_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
-        GPIOB_ModeCfg(BOOT_G2_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
-        GPIOB_ModeCfg(BOOT_EN_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
-        return (events ^ ESP_BOOT);
-    }
-    if(events & USR_RST_PREP_EVT)
-    {
-        GPIOB_ResetBits(BOOT_EN_Pin & chag_to_B);
-        GPIOB_ModeCfg(BOOT_EN_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
-        return (events ^ USR_RST_PREP_EVT);
-    }
-    if(events & ESP_RST)
-    {
-        GPIOB_SetBits(BOOT_EN_Pin & chag_to_B);
-        GPIOB_ModeCfg(BOOT_EN_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
-        return (events ^ ESP_RST);
-    }
-    if(events & ESP_G02_Release)
-    {
-        GPIOB_SetBits(BOOT_G0_Pin & chag_to_B);
-        GPIOB_ModeCfg(BOOT_G0_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
-        // GPIOB_ModeCfg(BOOT_G0_Pin & chag_to_B, GPIO_ModeIN_Floating);
-        GPIOB_ModeCfg(BOOT_G2_Pin & chag_to_B, GPIO_ModeIN_Floating);
-        // GPIOB_SetBits(BOOT_G2_Pin & chag_to_B);
-        // GPIOB_ModeCfg(BOOT_G2_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
-        return (events ^ ESP_G02_Release);
-    }
-    if(events & SYS_KEY_EVT)
-    {
-        static GPIOStateTpDef SYS_KEY_old = GPIO_INVER;
-        GPIOStateTpDef SYS_KEY_val;
-        SYS_KEY_val = Pin_state(Sys_KEY_Pin);
-        if(SYS_KEY_val != SYS_KEY_old)
-        {
-            SYS_KEY_old = SYS_KEY_val;
-            KEY_Handle(SYS_KEY_INDEX, (SYS_KEY_val == GPIO_LOW) ? KEY_FALLING_EVENT : KEY_RISING_EVENT);
-        }
-        return (events ^ SYS_KEY_EVT);
-    }
-    if(events & USR_KEY_EVT)
-    {
-        static GPIOStateTpDef USR_KEY_old = GPIO_INVER;
-        GPIOStateTpDef USR_KEY_val;
-        USR_KEY_val = Pin_state(User_KEY_Pin);
-        if(USR_KEY_val != USR_KEY_old)
-        {
-            USR_KEY_old = USR_KEY_val;
-            KEY_Handle(USR_KEY_INDEX, (USR_KEY_val == GPIO_LOW) ? KEY_FALLING_EVENT : KEY_RISING_EVENT);
-        }
-        return (events ^ USR_KEY_EVT);
-    }
-    if(events & LED_UPDATE_EVT)
-    {
-        // 已弃用
-        return (events ^ LED_UPDATE_EVT);
-    }
-    if(events & SYS_LED_EVT)
-    {
-        LED_Handle(SYS_LED_INDEX);
-        LED_Ctrl(SYS_LED_INDEX, LED_Bink_Mode[SYS_LED_INDEX]);
-        return (events ^ SYS_LED_EVT);
-    }
-    if(events & USR_LED_EVT)
-    {
-        LED_Handle(USR_LED_INDEX);
-        LED_Ctrl(USR_LED_INDEX, LED_Bink_Mode[USR_LED_INDEX]);
-        return (events ^ USR_LED_EVT);
+        BOOT_Execute_GPIO_MODE();
+        GPIO_Mode_SETTING();
+        GPIO_GETTING();
+        KEY_STATE_GETTING();
+        SYS_STATE_to_SYS_LED();
+        GPIO_DATA_OUTPUTING();
+        LED_OUTPUTING();
+        return (events ^ GPIO_PROCESS_EVT);
     }
     if(events & KEY_SHAKE_EVT)
     {
-        static uint8_t SHAKE_Count = 0;
-        if(SHAKE_Count >= KEY_SHAKE_COUNT_MAX)
-        {
-            SHAKE_Count = 0;
-            // tmos_clear_event(APP_TaskID, KEY_SHAKE_EVT);
-        }
-        else
-        {
-            SHAKE_Count++;
-
-            if(KEY_STATE_BITMAP[0] & KEY_STATE_to_GPIO0_Bit)
-                Pin_Ctrl(GPIO_G0_Pin, GPIO_INVER);
-            if(KEY_STATE_BITMAP[0] & KEY_STATE_to_GPIO1_Bit)
-                Pin_Ctrl(GPIO_G1_Pin, GPIO_INVER);
-            if(KEY_STATE_BITMAP[0] & KEY_STATE_to_GPIO2_Bit)
-                Pin_Ctrl(GPIO_G2_Pin, GPIO_INVER);
-            if(KEY_STATE_BITMAP[0] & KEY_STATE_to_GPIO3_Bit)
-                Pin_Ctrl(GPIO_G3_Pin, GPIO_INVER);
-            if(KEY_STATE_BITMAP[0] & KEY_STATE_to_GPIO14_Bit)
-                Pin_Ctrl(GPIO_G14_Pin, GPIO_INVER);
-            if(KEY_STATE_BITMAP[0] & KEY_STATE_to_GPIO15_Bit)
-                Pin_Ctrl(GPIO_G15_Pin, GPIO_INVER);
-            if(KEY_STATE_BITMAP[0] & KEY_STATE_to_QL_Pin_Bit)
-                Pin_Ctrl(Board_QL_Pin, GPIO_INVER);
-            
-            if(KEY_STATE_BITMAP[1] & KEY_STATE_to_GPIO0_Bit)
-                Pin_Ctrl(GPIO_G0_Pin, GPIO_INVER);
-            if(KEY_STATE_BITMAP[1] & KEY_STATE_to_GPIO1_Bit)
-                Pin_Ctrl(GPIO_G1_Pin, GPIO_INVER);
-            if(KEY_STATE_BITMAP[1] & KEY_STATE_to_GPIO2_Bit)
-                Pin_Ctrl(GPIO_G2_Pin, GPIO_INVER);
-            if(KEY_STATE_BITMAP[1] & KEY_STATE_to_GPIO3_Bit)
-                Pin_Ctrl(GPIO_G3_Pin, GPIO_INVER);
-            if(KEY_STATE_BITMAP[1] & KEY_STATE_to_GPIO14_Bit)
-                Pin_Ctrl(GPIO_G14_Pin, GPIO_INVER);
-            if(KEY_STATE_BITMAP[1] & KEY_STATE_to_GPIO15_Bit)
-                Pin_Ctrl(GPIO_G15_Pin, GPIO_INVER);
-            if(KEY_STATE_BITMAP[1] & KEY_STATE_to_QL_Pin_Bit)
-                Pin_Ctrl(Board_QL_Pin, GPIO_INVER);
-
-            tmos_start_task(APP_TaskID, KEY_SHAKE_EVT, 2);
-        }
         return (events ^ KEY_SHAKE_EVT);
     }
-    if(events & GPIO_CONFIG_EVT)
-    {
-        if(SYS_STATE_BITMAP & SYS_GPIO_FREE_MODE_Bit)
-        {
-            GPIOB_ModeCfg(GPIO_Pin_15, GPIO_ModeIN_Floating);   // GPIO0
-            GPIOB_ModeCfg(GPIO_Pin_4, GPIO_ModeIN_Floating);    // GPIO1
-            GPIOB_ModeCfg(GPIO_Pin_13, GPIO_ModeIN_Floating);   // GPIO2
-            GPIOB_ModeCfg(GPIO_Pin_7, GPIO_ModeIN_Floating);    // GPIO3
-            GPIOA_ModeCfg(GPIO_Pin_4, GPIO_ModeIN_Floating);    // GPIO14
-            GPIOA_ModeCfg(GPIO_Pin_4, GPIO_ModeIN_Floating);    // GPIO15
-        }
-        else
-        {
-            QWL_GPIO_Init();
-        }
-        if(SYS_STATE_BITMAP & SYS_SDIO_MODE_EN_Bit)
-        {
-            GPIOB_ModeCfg(GPIO_Pin_13, GPIO_ModeIN_PU);   // GPIO2
-            GPIOA_ModeCfg(GPIO_Pin_4, GPIO_ModeIN_PU);    // GPIO14
-            GPIOA_ModeCfg(GPIO_Pin_4, GPIO_ModeIN_PU);    // GPIO15
-        }
-        else
-        {
-            GPIOB_ModeCfg(GPIO_Pin_13, GPIO_ModeIN_Floating);   // GPIO2
-            GPIOA_ModeCfg(GPIO_Pin_4, GPIO_ModeIN_Floating);    // GPIO14
-            GPIOA_ModeCfg(GPIO_Pin_4, GPIO_ModeIN_Floating);    // GPIO15
-        }
-        if(!((KEY_STATE_BITMAP[SYS_KEY_INDEX] | KEY_STATE_BITMAP[USR_KEY_INDEX]) & DFT_KEY_MODE_Bit))
-        {
-            // KEY输出对象
-            // G0 始终输出
-            // G1
-            if((KEY_STATE_BITMAP[SYS_KEY_INDEX] | KEY_STATE_BITMAP[USR_KEY_INDEX]) & KEY_STATE_to_GPIO1_Bit)
-                GPIOB_ModeCfg(GPIO_G1_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
-            else
-                GPIOB_ModeCfg(GPIO_G1_Pin & chag_to_B, GPIO_ModeIN_PU);
-            // G2
-            if((KEY_STATE_BITMAP[SYS_KEY_INDEX] | KEY_STATE_BITMAP[USR_KEY_INDEX]) & KEY_STATE_to_GPIO2_Bit)
-                GPIOB_ModeCfg(GPIO_G2_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
-            else
-                GPIOB_ModeCfg(GPIO_G2_Pin & chag_to_B, GPIO_ModeIN_PU);
-            // G3 始终输出
-            // // G14
-            // if((KEY_STATE_BITMAP[SYS_KEY_INDEX] | KEY_STATE_BITMAP[USR_KEY_INDEX]) & KEY_STATE_to_GPIO14_Bit)
-            //     GPIOB_ModeCfg(GPIO_G1_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
-            // else
-            //     GPIOB_ModeCfg(GPIO_G1_Pin & chag_to_B, GPIO_ModeIN_PU);
-            // // G15
-            // if((KEY_STATE_BITMAP[SYS_KEY_INDEX] | KEY_STATE_BITMAP[USR_KEY_INDEX]) & KEY_STATE_to_GPIO15_Bit)
-            //     GPIOB_ModeCfg(GPIO_G1_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
-            // else
-            //     GPIOB_ModeCfg(GPIO_G1_Pin & chag_to_B, GPIO_ModeIN_PU);
-            // QL
-            if((KEY_STATE_BITMAP[SYS_KEY_INDEX] | KEY_STATE_BITMAP[USR_KEY_INDEX]) & DFT_LED_MODE_Bit)
-                GPIOA_ModeCfg(Board_QL_Pin, GPIO_ModeOut_PP_5mA);
-            else
-                GPIOA_ModeCfg(Board_QL_Pin, GPIO_ModeIN_PU);
-        }
-        
-        if ((LED_STATE_BITMAP[SYS_KEY_INDEX] | LED_STATE_BITMAP[USR_KEY_INDEX]) & LED_STATE_from_GPIO0_Bit)
-        {
-            // LED输入对象
-            // G0
-            if ((LED_STATE_BITMAP[SYS_KEY_INDEX] | LED_STATE_BITMAP[USR_KEY_INDEX]) & LED_STATE_from_GPIO0_Bit)
-                GPIOB_ModeCfg(GPIO_G0_Pin & chag_to_B, GPIO_ModeIN_Floating);
-            else
-                GPIOB_ModeCfg(GPIO_G0_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
-            // G3
-            if ((LED_STATE_BITMAP[SYS_KEY_INDEX] | LED_STATE_BITMAP[USR_KEY_INDEX]) & LED_STATE_from_GPIO3_Bit)
-                GPIOB_ModeCfg(GPIO_G0_Pin & chag_to_B, GPIO_ModeIN_Floating);
-            else
-                GPIOB_ModeCfg(GPIO_G0_Pin & chag_to_B, GPIO_ModeOut_PP_5mA);
-            // QL
-            if((KEY_STATE_BITMAP[SYS_KEY_INDEX] | KEY_STATE_BITMAP[USR_KEY_INDEX]) & LED_STATE_from_QL_Pin_Bit)
-                GPIOA_ModeCfg(Board_QL_Pin, GPIO_ModeIN_Floating);
-            else
-                GPIOA_ModeCfg(Board_QL_Pin, GPIO_ModeOut_PP_5mA);
-        }
-        return (events ^ GPIO_CONFIG_EVT);
-    }
-
     return 0;
 }
 
@@ -610,11 +596,7 @@ void Task_Launcher(void)
 void APP_task_Init(void)
 {
     APP_TaskID = TMOS_ProcessEventRegister(App_ProcessEvent);
-    tmos_start_reload_task(APP_TaskID, SYS_KEY_EVT, 20);    // 12.5ms
-    tmos_start_reload_task(APP_TaskID, USR_KEY_EVT, 20);    // 12.5ms
-    tmos_start_reload_task(APP_TaskID, SYS_LED_EVT, 20);    // 50ms
-    tmos_start_reload_task(APP_TaskID, USR_LED_EVT, 20);    // 12.5ms
-    // tmos_start_reload_task(APP_TaskID, LED_UPDATE_EVT, 20);    // 12.5ms //已弃用
+    tmos_start_reload_task(APP_TaskID, GPIO_PROCESS_EVT, 20);    // 12.5ms
 }
 
 void BOOT_CTRL_LINE_Check(uint8_t COM_CTRL_LINE_STATE)
@@ -666,7 +648,7 @@ void BOOT_Serial_Chack(uint8_t First_bit)
         {
             if(First_bit == ESP32_BOOT_F_Bit) 
             {
-                *APP_BOOT_State = ESP32_BOOT_NOW;
+                *APP_BOOT_State = ESP32_BOOT_PREPARE;
                 SYS_STATE_BITMAP |= SYS_UART_FLASHING_STATE_Bit;
                 Timer_Task_Stop();
             }
@@ -686,30 +668,6 @@ void BOOT_Serial_Chack(uint8_t First_bit)
     //         if(First_bit == SSCOM_BOOT_F_Bit) *APP_BOOT_State = STC_BOOT_NOW;
     //     }
     // }
-}
-
-void BOOT_Execute(void)
-{
-    if(*APP_BOOT_State & Execute_NOW_Bit)
-    {
-        switch (*APP_BOOT_State)
-        {
-        case ESP32_BOOT_NOW:
-            tmos_start_task(APP_TaskID, ESP_BOOT, 0);
-            tmos_start_task(APP_TaskID, ESP_RST, 10);
-            tmos_start_task(APP_TaskID, ESP_G02_Release, 20);
-            break;
-        case ESP32_Reset_NOW:
-            tmos_start_task(APP_TaskID, USR_RST_PREP_EVT, 0);
-            tmos_start_task(APP_TaskID, ESP_RST, 10);
-            break;
-        
-        default:
-            break;
-        }
-        // 复位
-        *APP_BOOT_State = IDLE_Mode;
-    }
 }
 
 /*******************************************************************************

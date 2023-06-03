@@ -26,18 +26,8 @@ extern "C" {
 
 // UART Task Events
 #define APP_Test_EVT        0x0001
-#define ESP_Start_From_SPI  0x0002
-#define ESP_BOOT            0x0004
-#define ESP_RST             0x0008
-#define ESP_G02_Release     0x0010
-#define SYS_KEY_EVT         0x0020
-#define USR_KEY_EVT         0x0040
-#define SYS_LED_EVT         0x0080
-#define USR_LED_EVT         0x0100
-#define USR_RST_PREP_EVT    0x0200
-#define KEY_SHAKE_EVT       0x0400
-#define LED_UPDATE_EVT      0x0800
-#define GPIO_CONFIG_EVT     0x1000
+#define GPIO_PROCESS_EVT    0x0002
+#define KEY_SHAKE_EVT       0x0004
 
 #define KEY_SHAKE_COUNT_MAX         3
 
@@ -61,7 +51,7 @@ extern "C" {
 #define ESP32_DLDEND_STATE              0x51
 #define ESP32_RST_STATE                 0xFF
 #define ESP_Tool_CTRL_STATE             0x15  // 存在未知问题
-#define Arduino_DLD_STATE              0xFF
+#define Arduino_DLD_STATE               0xFF
 #define SSCOM_CTRL_STATE                0xFB
 
 #define ESP32_BOOT_F_Bit                0xC0
@@ -78,19 +68,25 @@ extern "C" {
 // #define Only_UART_Check                 0x00
 #define IDLE_Mode                       0x00
 #define ESP32_UART_Check                0x01
-#define Arduino_UART_Check              0x02
-#define SSCOM_UART_Check                0x03
+#define Arduino_UART_Check              0x06
+#define SSCOM_UART_Check                0x07
 // #define Only_UART_S_Check               0x40
 // #define ESP32_UART_S_Check              0x41
 // #define Arduino_UART_S_Check            0x42
 // #define SSCOM_UART_S_Check              0x43
-#define ESP32_BOOT_NOW                  0x81
-#define ESP32_Reset_NOW                 0x82
-#define Arduino_BOOT_NOW                0x83
-#define STC_BOOT_NOW                    0x84
-#define STM32_BOOT_NOW                  0x85
+#define ESP32_BOOT_PREPARE              0x81
+#define ESP32_BOOT_NOW                  0x82
+#define ESP32_BOOT_END                  0x83
+#define ESP32_Reset_NOW                 0x84
+#define ESP32_Reset_END                 0x85
+#define Arduino_BOOT_NOW                0x86
+#define STC_BOOT_NOW                    0x87
+#define STM32_BOOT_NOW                  0x88
 
-// KEY & LED INDEX
+/// GPIO_INDEX_MAX
+#define GPIO_INDEX_MAX                  7
+
+/// KEY & LED INDEX
 #define SYS_KEY_INDEX                   0
 #define USR_KEY_INDEX                   1
 #define SYS_LED_INDEX                   0
@@ -100,6 +96,39 @@ extern "C" {
 #define KEY_FALLING_EVENT               0x00
 #define KEY_INVER_EVENT                 0x01
 #define KEY_RISING_EVENT                0xFF
+
+// /// LED_STATE_BitMap for INPUT
+// #define LED_BIT_MASK                    0x7F
+// #define LED_OFF                         0x00
+// #define LED_ON                          0x01
+// #define LED_BLINK                       0x02
+// #define LED_BLINK_2                     0x03
+// #define LED_DIS_Bit                     0x80        // BOOT
+
+// /// LED_MODE for OUTPUT
+// #define LED_DEFAULT_MODE                0x00
+// #define LED_IO_CTRL_MODE                0x01
+// #define LED_COM_CTRL_H_MODE             0x02
+// #define LED_COM_CTRL_L_MODE             0x03
+// #define LED_INVER_CTRL_Bit              0x80
+
+/// LED_MODE
+#define LED_ON_OFF_Bit                  0x01    // W/R 结果导向-->LED 亮不亮/闪不闪
+#define LED_BLINK_EN_Bit                0x02
+#define LED_BLINK_Times_Bit             0x04
+#define LED_COM_CTRL_Bit                0x20    // 0: IO Ctrl;1:UART Ctrl;
+#define LED_INVER_CTRL_Bit              0x40    // 0: GPIO HIGH;1:GPIO LOW;
+#define LED_SYS_CTRL_Bit                0x80    // 0: Default;1:BOOT MODE;
+
+/// KEY_MODE
+#define KEY_NEW_DATA_Bit                0x01    // 
+#define KEY_UP_DOWN_Bit                 0x02    // R ctrl by GPIO 认知导向-->KEY按没按下
+#define KEY_SOFT_UP_DOWN_Bit            0x04    // R ctrl by USB or BLE 认知导向
+#define KEY_LOCK_EN_Bit                 0x08
+#define KEY_STATE_EN_Bit                0x10
+#define KEY_UART_OUT_EN_Bit             0x20    // 0: OUTPUT to IO;1:OUTPUT to UART;
+#define KEY_INVER_OUT_Bit               0x40    // 0: GPIO HIGH;1:GPIO LOW;
+#define KEY_SYS_CTRL_Bit                0x80    // 0: Default;1:BOOT MODE;
 
 // KEY STATE BITMAP
 #define DFT_KEY_MODE_Bit                0x0001      // 0: 默认功能，1: 由用户选择数据输出对象
@@ -149,7 +178,7 @@ extern "C" {
 // LED STATE BITMAP MASK
 #define LED_DATA_MASK                   0x03FC      //11 1111 1100
 
-// SYS STATE BITMAP
+/// SYS STATE BITMAP
 #define SYS_RUNNING_BREAK_STATE_Bit     0x0001
 #define SYS_USB_NEW_STATE_Bit           0x0002
 #define SYS_USB_CONNECT_STATE_Bit       0x0004
@@ -195,7 +224,6 @@ void Set_LED_Blink_Mode(uint8_t _LED_Index, uint8_t _Blink_Mode);
 void All_FIFO_Init(void);
 void APP_task_Init(void);
 void Task_Launcher(void);
-void BOOT_Execute(void);
 void BOOT_CTRL_LINE_Check(uint8_t COM_CTRL_LINE_STATE);
 void BOOT_State_Init(uint8_t *pBOOT_State);
 void BOOT_Serial_Chack(uint8_t First_bit);

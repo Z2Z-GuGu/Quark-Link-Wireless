@@ -42,7 +42,7 @@ int main(void)
         uart_fifo_cheak_process();
         ble_fifo_cheak_process();
         uart_auto_send();
-        BOOT_Execute();
+        // BOOT_Execute();
     }
 }
 
