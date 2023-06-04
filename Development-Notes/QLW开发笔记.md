@@ -565,7 +565,7 @@
     |     2 | USR LED | USR LED | USR LED | USR LED | USR LED | USR LED | USR LED |
     |     3 | SYS KEY | SYS KEY | SYS KEY | SYS KEY | SYS KEY | SYS KEY | SYS KEY |
     |     4 | USR KEY | USR KEY | USR KEY | USR KEY | USR KEY | USR KEY | USR KEY |
-    |     5 | BOOT | RX | BOOT | TX | SDIO | SDIO | DEBUG |
+    |     5 | BOOT/AT | RX | BOOT/SD | TX | SDIO | SDIO | DEBUG |
     |     6 | Release | Release | Release | Release | Release | Release | Release |
   
 + LED STATE[2]重构
