@@ -1,5 +1,6 @@
 ################################################################################
-# Automatically-generated file. Do not edit!
+# MRS Version: {"version":"1.8.5","date":"2023/05/22"}
+# 自动生成的文件。不要编辑！
 ################################################################################
 
 -include ../makefile.init
@@ -55,12 +56,12 @@ SECONDARY_SIZE += \
 Quark_Link_Wireless.siz \
 
 
-# All Target
+# 所有目标
 all: Quark_Link_Wireless.elf secondary-outputs
 
-# Tool invocations
+# 工具调用
 Quark_Link_Wireless.elf: $(OBJS) $(USER_OBJS)
-	@	@	riscv-none-embed-gcc -march=rv32imac -mabi=ilp32 -mcmodel=medany -msmall-data-limit=8 -mno-save-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused  -g -T "C:\Project\CH573F\Quark_Link_Wireless\Ld\Link.ld" -nostartfiles -Xlinker --gc-sections -L"C:\Project\CH573F\Quark_Link_Wireless\StdPeriphDriver" -L"C:\Project\CH573F\Quark_Link_Wireless\LIB" -Xlinker --print-memory-usage -Wl,-Map,"Quark_Link_Wireless.map" --specs=nano.specs --specs=nosys.specs -o "Quark_Link_Wireless.elf" $(OBJS) $(USER_OBJS) $(LIBS)
+	@	@	riscv-none-embed-gcc -march=rv32imac -mabi=ilp32 -mcmodel=medany -msmall-data-limit=8 -mno-save-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused  -g -T "C:\Users\BuGu\Documents\GitHub\Quark-Link-Wireless\code\Ld\Link.ld" -nostartfiles -Xlinker --gc-sections -L"C:\Users\BuGu\Documents\GitHub\Quark-Link-Wireless\code\StdPeriphDriver" -L"C:\Users\BuGu\Documents\GitHub\Quark-Link-Wireless\code\LIB" -Xlinker --print-memory-usage -Wl,-Map,"Quark_Link_Wireless.map" --specs=nano.specs --specs=nosys.specs -o "Quark_Link_Wireless.elf" $(OBJS) $(USER_OBJS) $(LIBS)
 	@	@
 Quark_Link_Wireless.hex: Quark_Link_Wireless.elf
 	@	riscv-none-embed-objcopy -O ihex "Quark_Link_Wireless.elf"  "Quark_Link_Wireless.hex"
@@ -71,7 +72,7 @@ Quark_Link_Wireless.lst: Quark_Link_Wireless.elf
 Quark_Link_Wireless.siz: Quark_Link_Wireless.elf
 	@	riscv-none-embed-size --format=berkeley "Quark_Link_Wireless.elf"
 	@	@
-# Other Targets
+# 其他目标
 clean:
 	-$(RM) $(ASM_UPPER_DEPS)$(OBJS)$(SECONDARY_FLASH)$(SECONDARY_LIST)$(SECONDARY_SIZE)$(ASM_DEPS)$(S_DEPS)$(S_UPPER_DEPS)$(C_DEPS) Quark_Link_Wireless.elf
 	-@

@@ -158,9 +158,5 @@
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 	</storageModule>
-	<storageModule moduleId="refreshScope" versionNumber="2">
-		<configuration configurationName="obj">
-			<resource resourceType="PROJECT" workspacePath="/11-CH573F-BLE-UART-USB"/>
-		</configuration>
-	</storageModule>
+	
 </cproject>
