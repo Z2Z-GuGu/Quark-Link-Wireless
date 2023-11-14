@@ -20,7 +20,7 @@
     + /${ProjName}/QLW_lib/uart_task
     + /${ProjName}/QLW_lib/usb_task
   + Symbols - GNU C add:
-    + DEBUG 0
+    + 删除 DEBUG 1 
   + Libraries add:(没有.、没有路径、没有“is a workspace path”)
     + CH58xBLE
     + ISP583
