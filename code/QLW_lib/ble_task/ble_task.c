@@ -1031,13 +1031,15 @@ void ble_fifo_cheak_process(void)
         if(!app_drv_fifo_is_empty(&UART_to_BLE_fifo))
         {
             BLE_TX_Channel = BLE_UART_CHANNEL;
-            tmos_start_task(BLE_TaskID, UART_TO_BLE_SEND_EVT, 2);
+            // tmos_start_task(BLE_TaskID, UART_TO_BLE_SEND_EVT, 2);
+            tmos_set_event(BLE_TaskID, UART_TO_BLE_SEND_EVT);
         }
     }
     if(!app_drv_fifo_is_empty(&ble_e_tx_fifo))
     {
         BLE_TX_Channel = BLE_SETTING_CHANNEL;
-        tmos_start_task(BLE_TaskID, UART_TO_BLE_SEND_EVT, 2);
+        // tmos_start_task(BLE_TaskID, UART_TO_BLE_SEND_EVT, 2);
+        tmos_set_event(BLE_TaskID, UART_TO_BLE_SEND_EVT);
     }
 }
 
