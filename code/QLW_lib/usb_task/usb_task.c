@@ -21,18 +21,35 @@ uint16_t SetupReqLen;
 
 /*设备描述符*/
 const uint8_t TAB_USB_CDC_DEV_DES[] = 
+// {
+//   0x12,
+//   0x01,
+//   0x00, // 0x10
+//   0x02, // 0x01
+//   0x00,                 //bDeviceClass: CDC-control 0x02 
+//   0x00,
+//   0x00,
+//   MAX_PACKET_SIZE,
+//   0x86, 0x1a,           //厂商ID 861a->VID=1a86    0xc4, 0x10,
+//   0x40, 0x80,           //产品ID 4080->PID=8040 //CH9340    0x60, 0xea,  CP210x    CDCOK:0x22, 0x57,
+//   0x00, 0x01,           //设备版本号
+//   0x01,                 //制造者的字符串描述符的索引值
+//   0x02,                 //产品的字符串描述符的索引值
+//   0x03,                 //序号的字符串描述符的索引值
+//   0x01                  //可能配置的数目
+// };
 {
   0x12,
   0x01,
   0x00, // 0x10
   0x02, // 0x01
-  0x00,                 //bDeviceClass: CDC-control 0x02 
+  0x00,                 //bDeviceClass: CDC-control 0x02 复合设备 :0xEF
   0x00,
   0x00,
   MAX_PACKET_SIZE,
-  0x86, 0x1a,           //厂商ID 861a->VID=1a86    0xc4, 0x10,
-  0x40, 0x80,           //产品ID 4080->PID=8040 //CH9340    0x60, 0xea,  CP210x    CDCOK:0x22, 0x57,
-  0x00, 0x01,           //设备版本号
+  0x77, 0x86,           //厂商ID 861a->VID=1a86    0xc4, 0x10,
+  0x50, 0x58,           //产品ID 4080->PID=8040 //CH9340    0x60, 0xea,  CP210x    CDCOK:0x22, 0x57,
+  0x00, 0x02,           //设备版本号
   0x01,                 //制造者的字符串描述符的索引值
   0x02,                 //产品的字符串描述符的索引值
   0x03,                 //序号的字符串描述符的索引值
